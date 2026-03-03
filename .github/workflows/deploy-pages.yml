@@ -1,0 +1,144 @@
+name: Deploy GitHub Pages
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.workflow }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  deploy:
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'master'
+      }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Detect package manager
+        id: pm
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f package-lock.json ]]; then
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+            echo "lockfile=package-lock.json" >> "$GITHUB_OUTPUT"
+            echo "use_cache=true" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
+          elif [[ -f pnpm-lock.yaml ]]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+            echo "lockfile=pnpm-lock.yaml" >> "$GITHUB_OUTPUT"
+            echo "use_cache=true" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
+          elif [[ -f yarn.lock ]]; then
+            echo "manager=yarn" >> "$GITHUB_OUTPUT"
+            echo "lockfile=yarn.lock" >> "$GITHUB_OUTPUT"
+            echo "use_cache=true" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=yarn install --frozen-lockfile" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+            echo "lockfile=" >> "$GITHUB_OUTPUT"
+            echo "use_cache=false" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=npm install" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js (with cache)
+        if: steps.pm.outputs.use_cache == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: ${{ steps.pm.outputs.manager }}
+          cache-dependency-path: ${{ steps.pm.outputs.lockfile }}
+
+      - name: Setup Node.js (without cache)
+        if: steps.pm.outputs.use_cache != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        shell: bash
+        run: ${{ steps.pm.outputs.install_cmd }}
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build published apps
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          npx nx build shop-web --configuration=production --base-href="/${REPO_NAME}/"
+          npx nx build admin-panel --configuration=production --base-href="/${REPO_NAME}/admin/"
+
+      - name: Assemble Pages site
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          find_output_dir() {
+            local app="$1"
+            local candidates=(
+              "dist/apps/${app}/browser"
+              "dist/apps/${app}"
+              "dist/${app}/browser"
+              "dist/${app}"
+            )
+
+            for candidate in "${candidates[@]}"; do
+              if [[ -f "${candidate}/index.html" ]]; then
+                echo "${candidate}"
+                return 0
+              fi
+            done
+
+            echo "Could not find build output for ${app}. Expected an index.html in one of: ${candidates[*]}" >&2
+            return 1
+          }
+
+          SHOP_DIST="$(find_output_dir shop-web)"
+          ADMIN_DIST="$(find_output_dir admin-panel)"
+
+          rm -rf site
+          mkdir -p site/admin
+
+          cp -a "${SHOP_DIST}/." site/
+          cp -a "${ADMIN_DIST}/." site/admin/
+
+          cp site/index.html site/404.html
+          cp site/admin/index.html site/admin/404.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Upload deploy artifact snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-site
+          path: site/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
