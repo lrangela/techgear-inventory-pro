@@ -1,3 +1,4 @@
 export const environment = {
-  apiBaseUrl: 'https://dummyjson.com',
+  apiBaseUrl: '/api',
+  authMode: 'remote' as const,
 };

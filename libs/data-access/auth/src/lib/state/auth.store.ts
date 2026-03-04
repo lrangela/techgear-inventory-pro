@@ -133,6 +133,7 @@ export class AuthStore {
   }
 
   logout(): void {
+    this.api.clearSession();
     this.storage.clear();
     this.state.set({ ...initialState });
   }

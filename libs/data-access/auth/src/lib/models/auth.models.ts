@@ -8,6 +8,8 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
+export type AuthMode = 'remote' | 'mock';
+
 export interface AuthUserDto {
   id: number;
   username: string;
@@ -29,6 +31,16 @@ export interface AuthUser {
 export interface LoginRequest {
   username: string;
   password: string;
+}
+
+export interface MockAuthAccount {
+  id: number;
+  email: string;
+  username: string;
+  password: string;
+  name: string;
+  role: string;
+  avatar?: string;
 }
 
 export const mapAuthTokens = (dto: AuthTokensDto): AuthTokens => ({

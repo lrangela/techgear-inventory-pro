@@ -25,6 +25,7 @@ describe('AuthStore', () => {
     login: ReturnType<typeof vi.fn>;
     profile: ReturnType<typeof vi.fn>;
     refresh: ReturnType<typeof vi.fn>;
+    clearSession: ReturnType<typeof vi.fn>;
   };
   let storageMock: {
     getAccess: ReturnType<typeof vi.fn>;
@@ -39,6 +40,7 @@ describe('AuthStore', () => {
       login: vi.fn(),
       profile: vi.fn(),
       refresh: vi.fn(),
+      clearSession: vi.fn(),
     };
 
     storageMock = {
@@ -196,6 +198,7 @@ describe('AuthStore', () => {
 
     store.logout();
 
+    expect(authApiMock.clearSession).toHaveBeenCalledTimes(1);
     expect(storageMock.clear).toHaveBeenCalledTimes(1);
     expect(store.accessToken()).toBeNull();
     expect(store.refreshToken()).toBeNull();

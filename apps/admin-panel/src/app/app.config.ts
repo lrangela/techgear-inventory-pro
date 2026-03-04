@@ -10,6 +10,7 @@ import { provideRouter } from '@angular/router';
 import { appRoutes } from './app.routes';
 import {
   AUTH_API_BASE_URL,
+  AUTH_RUNTIME_CONFIG,
   AuthStore,
   authInterceptor,
   LOGIN_PAGE_CONFIG,
@@ -46,10 +47,34 @@ export const appConfig: ApplicationConfig = {
         subtitle: 'Sign in to review the inventory dashboard and product management flows.',
         defaultRedirectUrl: '/products',
         demoAccount: {
-          email: 'emily.johnson@x.dummyjson.com',
-          username: 'emilys',
-          password: 'emilyspass',
+          email: 'admin.demo@techgear.dev',
+          username: 'admin-demo',
+          password: 'AdminDemo123!',
         },
+      },
+    },
+    {
+      provide: AUTH_RUNTIME_CONFIG,
+      useValue: {
+        mode: environment.authMode,
+        mockAccounts: [
+          {
+            id: 9001,
+            email: 'admin.demo@techgear.dev',
+            username: 'admin-demo',
+            password: 'AdminDemo123!',
+            name: 'Admin Demo User',
+            role: 'admin',
+          },
+          {
+            id: 1001,
+            email: 'shop.demo@techgear.dev',
+            username: 'shop-demo',
+            password: 'ShopDemo123!',
+            name: 'Shop Demo User',
+            role: 'customer',
+          },
+        ],
       },
     },
     provideAppInitializer(() => {

@@ -122,16 +122,23 @@ Environment variants currently used by both apps:
 - `production`
 
 Local-only environment files such as `environment.local.ts` are intentionally ignored by Git.
+`development` and `local` use `/api` with proxy (`proxy.conf.json`) to avoid browser CORS in local serve.
+`production` (GitHub Pages) uses mock authentication to keep the public demo stable without a backend proxy.
 
 ### Demo Access For GitHub Pages
 
-The published demo intentionally exposes a sample account so reviewers can access both apps without setup.
+The published demo intentionally exposes sample accounts so reviewers can access both apps without setup.
 
-- Email reference: `emily.johnson@x.dummyjson.com`
-- Username for sign-in: `emilys`
-- Password: `emilyspass`
+- Shop demo account:
+  - Email: `shop.demo@techgear.dev`
+  - Username: `shop-demo`
+  - Password: `ShopDemo123!`
+- Admin demo account:
+  - Email: `admin.demo@techgear.dev`
+  - Username: `admin-demo`
+  - Password: `AdminDemo123!`
 
-Important: DummyJSON authentication uses `username` and `password`, not email. The email is shown in the UI only as portfolio/demo context.
+Important: sign-in always uses `username` and `password`. Email is shown as portfolio/demo context.
 
 ### CI/CD
 
@@ -156,14 +163,16 @@ Important: DummyJSON authentication uses `username` and `password`, not email. T
 - [Architecture Decision Records](./docs/adr/)
 - [ADR-0001 Architecture](./docs/adr/ADR-0001-architecture.md)
 - [ADR-0002 Quality And Delivery](./docs/adr/ADR-0002-quality-and-delivery.md)
+- [ADR-0003 Auth Strategy For Static Deploy](./docs/adr/ADR-0003-auth-strategy-static-deploy.md)
 - [Fake backend alternatives](./fake-backend-alternatives.md)
 
 ### Known Gaps
 
 - DummyJSON is still a demo backend and not a production-owned API.
+- Mock auth is enabled only for static Pages deployment and is not suitable for real production security.
 - Observability and release governance are still pending.
 - Review of component usage did not reveal orphaned feature/shared components; the remaining minimal root shell components are intentional.
-- E2E still depends on DummyJSON availability and demo credentials because the repo does not own the backend.
+- E2E still depends on DummyJSON availability for catalog/inventory data because the repo does not own the backend.
 
 ## Espanol
 
@@ -279,16 +288,23 @@ Variantes de entorno usadas actualmente por ambas apps:
 - `production`
 
 Los archivos locales como `environment.local.ts` se ignoran en Git de forma intencional.
+`development` y `local` usan `/api` con proxy (`proxy.conf.json`) para evitar CORS en navegador durante desarrollo.
+`production` (GitHub Pages) usa autenticacion mock para mantener estable la demo publica sin backend proxy.
 
 ### Acceso Demo Para GitHub Pages
 
-La demo publicada expone de forma intencional una cuenta de ejemplo para que cualquiera pueda entrar a ambas apps sin configuracion previa.
+La demo publicada expone cuentas de ejemplo para que cualquiera pueda entrar a ambas apps sin configuracion previa.
 
-- Email de referencia: `emily.johnson@x.dummyjson.com`
-- Username real para login: `emilys`
-- Password: `emilyspass`
+- Cuenta demo de tienda:
+  - Email: `shop.demo@techgear.dev`
+  - Username: `shop-demo`
+  - Password: `ShopDemo123!`
+- Cuenta demo de administrador:
+  - Email: `admin.demo@techgear.dev`
+  - Username: `admin-demo`
+  - Password: `AdminDemo123!`
 
-Importante: la autenticacion de DummyJSON usa `username` y `password`, no email. El email se muestra solo como contexto de demo/portafolio.
+Importante: el login siempre usa `username` y `password`. El email se muestra como contexto de demo/portafolio.
 
 ### CI/CD
 
@@ -313,11 +329,13 @@ Importante: la autenticacion de DummyJSON usa `username` y `password`, no email.
 - [Architecture Decision Records](./docs/adr/)
 - [ADR-0001 Arquitectura](./docs/adr/ADR-0001-architecture.md)
 - [ADR-0002 Calidad y Delivery](./docs/adr/ADR-0002-quality-and-delivery.md)
+- [ADR-0003 Estrategia Auth Para Deploy Estatico](./docs/adr/ADR-0003-auth-strategy-static-deploy.md)
 - [Alternativas de fake backend](./fake-backend-alternatives.md)
 
 ### Brechas Actuales
 
 - DummyJSON sigue siendo una API de demo y no un backend propio de produccion.
+- La autenticacion mock se habilita solo para el deploy estatico en Pages y no sirve como seguridad real de produccion.
 - Falta observabilidad y gobierno de release.
 - La revision de uso de componentes no encontro componentes feature/shared huerfanos; los shells raiz minimos que quedan son intencionales.
-- El E2E sigue dependiendo de la disponibilidad de DummyJSON y de las credenciales demo porque el backend no es propio.
+- El E2E sigue dependiendo de la disponibilidad de DummyJSON para datos de catalogo/inventario porque el backend no es propio.
