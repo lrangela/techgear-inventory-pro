@@ -3,6 +3,8 @@
 [![CI](https://github.com/lrangela/techgear-inventory-pro/actions/workflows/ci.yml/badge.svg)](https://github.com/lrangela/techgear-inventory-pro/actions/workflows/ci.yml)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-2ea44f?logo=github)](https://lrangela.github.io/techgear-inventory-pro/)
 
+[URL: https://lrangela.github.io/techgear-inventory-pro/](https://lrangela.github.io/techgear-inventory-pro/)
+
 English and Spanish documentation for the current Nx workspace.
 Documentacion en ingles y espanol para el workspace actual de Nx.
 
@@ -15,17 +17,17 @@ It contains a customer storefront (`shop-web`) and an internal inventory/admin e
 
 Project routes:
 
-- Repository: `https://github.com/lrangela/techgear-inventory-pro`
-- Deployment: `https://lrangela.github.io/techgear-inventory-pro/`
+- Repository: [https://github.com/lrangela/techgear-inventory-pro](https://github.com/lrangela/techgear-inventory-pro)
+- Deployment: [https://lrangela.github.io/techgear-inventory-pro/](https://lrangela.github.io/techgear-inventory-pro/)
 
 System split and route examples:
 
 - User shopping system (`shop-web`):
-- Local example routes: `http://localhost:4200/login`, `http://localhost:4200/catalog`, `http://localhost:4200/cart`
-- Deployed example routes: `https://lrangela.github.io/techgear-inventory-pro/`, `https://lrangela.github.io/techgear-inventory-pro/catalog`, `https://lrangela.github.io/techgear-inventory-pro/cart`
+  - Local: `http://localhost:4200/`
+  - Deployed: [https://lrangela.github.io/techgear-inventory-pro/](https://lrangela.github.io/techgear-inventory-pro/)
 - Administrator system (`admin-panel`):
-- Local example routes: `http://localhost:4201/login`, `http://localhost:4201/products`, `http://localhost:4201/inventory`
-- Deployed example routes: `https://lrangela.github.io/techgear-inventory-pro/admin/`, `https://lrangela.github.io/techgear-inventory-pro/admin/products`, `https://lrangela.github.io/techgear-inventory-pro/admin/inventory`
+  - Local: `http://localhost:4201/`
+  - Deployed: [https://lrangela.github.io/techgear-inventory-pro/admin/](https://lrangela.github.io/techgear-inventory-pro/admin/)
 
 The repository is structured as a frontend architecture demo focused on:
 
@@ -89,16 +91,16 @@ Testing and verification are standardized across the entire workspace.
 
 ### Tech Stack
 
-| Area | Current choice |
-|---|---|
-| Frontend | Angular 21 |
-| Workspace | Nx 22 |
-| Styling | SCSS + Tailwind CSS |
-| State | Angular signals + `@ngrx/signals` |
-| Validation | `zod` |
-| Testing | Vitest (jsdom) |
-| CI/CD | GitHub Actions |
-| Deployment | GitHub Pages |
+| Area       | Current choice                    |
+| ---------- | --------------------------------- |
+| Frontend   | Angular 21                        |
+| Workspace  | Nx 22                             |
+| Styling    | SCSS + Tailwind CSS               |
+| State      | Angular signals + `@ngrx/signals` |
+| Validation | `zod`                             |
+| Testing    | Vitest (jsdom)                    |
+| CI/CD      | GitHub Actions                    |
+| Deployment | GitHub Pages                      |
 
 ### Local Development
 
@@ -172,17 +174,17 @@ Incluye una tienda para cliente (`shop-web`) y una experiencia interna de admini
 
 Rutas del proyecto:
 
-- Repositorio: `https://github.com/lrangela/techgear-inventory-pro`
-- Despliegue: `https://lrangela.github.io/techgear-inventory-pro/`
+- Repositorio: [https://github.com/lrangela/techgear-inventory-pro](https://github.com/lrangela/techgear-inventory-pro)
+- Despliegue: [https://lrangela.github.io/techgear-inventory-pro/](https://lrangela.github.io/techgear-inventory-pro/)
 
 Division de sistemas y ejemplos de rutas:
 
 - Sistema de compra para usuario (`shop-web`):
-- Rutas locales de ejemplo: `http://localhost:4200/login`, `http://localhost:4200/catalog`, `http://localhost:4200/cart`
-- Rutas desplegadas de ejemplo: `https://lrangela.github.io/techgear-inventory-pro/`, `https://lrangela.github.io/techgear-inventory-pro/catalog`, `https://lrangela.github.io/techgear-inventory-pro/cart`
+  - Local: `http://localhost:4200/`
+  - Desplegado: [https://lrangela.github.io/techgear-inventory-pro/](https://lrangela.github.io/techgear-inventory-pro/)
 - Sistema de administrador (`admin-panel`):
-- Rutas locales de ejemplo: `http://localhost:4201/login`, `http://localhost:4201/products`, `http://localhost:4201/inventory`
-- Rutas desplegadas de ejemplo: `https://lrangela.github.io/techgear-inventory-pro/admin/`, `https://lrangela.github.io/techgear-inventory-pro/admin/products`, `https://lrangela.github.io/techgear-inventory-pro/admin/inventory`
+  - Local: `http://localhost:4201/`
+  - Desplegado: [https://lrangela.github.io/techgear-inventory-pro/admin/](https://lrangela.github.io/techgear-inventory-pro/admin/)
 
 El repositorio esta orientado a mostrar una arquitectura frontend con foco en:
 
@@ -246,16 +248,16 @@ Testing y verificacion quedaron estandarizados en todo el workspace.
 
 ### Stack Tecnologico
 
-| Area | Eleccion actual |
-|---|---|
-| Frontend | Angular 21 |
-| Workspace | Nx 22 |
-| Estilos | SCSS + Tailwind CSS |
-| Estado | Angular signals + `@ngrx/signals` |
-| Validacion | `zod` |
-| Testing | Vitest (jsdom) |
-| CI/CD | GitHub Actions |
-| Despliegue | GitHub Pages |
+| Area       | Eleccion actual                   |
+| ---------- | --------------------------------- |
+| Frontend   | Angular 21                        |
+| Workspace  | Nx 22                             |
+| Estilos    | SCSS + Tailwind CSS               |
+| Estado     | Angular signals + `@ngrx/signals` |
+| Validacion | `zod`                             |
+| Testing    | Vitest (jsdom)                    |
+| CI/CD      | GitHub Actions                    |
+| Despliegue | GitHub Pages                      |
 
 ### Desarrollo Local
 
