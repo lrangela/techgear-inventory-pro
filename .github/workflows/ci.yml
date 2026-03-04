@@ -14,66 +14,59 @@ concurrency:
 
 env:
   NODE_VERSION: '20'
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
 
 jobs:
-  typecheck:
-    name: Typecheck
+  # ─── Install (una sola vez, cacheado por hash del lockfile) ───────────────────
+  install:
+    name: Install
     runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Compute cache key
+        id: cache-key
+        run: echo "key=node-modules-${{ hashFiles('package-lock.json') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore node_modules cache
+        id: cache
+        uses: actions/cache@v4
         with:
-          fetch-depth: 0
+          path: node_modules
+          key: ${{ steps.cache-key.outputs.key }}
 
-      - name: Detect package manager
-        id: pm
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -f package-lock.json ]]; then
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=package-lock.json" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
-          elif [[ -f pnpm-lock.yaml ]]; then
-            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=pnpm-lock.yaml" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          elif [[ -f yarn.lock ]]; then
-            echo "manager=yarn" >> "$GITHUB_OUTPUT"
-            echo "lockfile=yarn.lock" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=yarn install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          else
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=" >> "$GITHUB_OUTPUT"
-            echo "use_cache=false" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm install" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Node.js (with cache)
-        if: steps.pm.outputs.use_cache == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: ${{ steps.pm.outputs.manager }}
-          cache-dependency-path: ${{ steps.pm.outputs.lockfile }}
-
-      - name: Setup Node.js (without cache)
-        if: steps.pm.outputs.use_cache != 'true'
+      - name: Setup Node.js
+        if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        shell: bash
-        run: ${{ steps.pm.outputs.install_cmd }}
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm ci --no-audit --no-fund
+
+  # ─── Typecheck ────────────────────────────────────────────────────────────────
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.install.outputs.cache-key }}
 
       - name: Typecheck workspace
-        shell: bash
         run: npm run typecheck
 
+  # ─── Lint (paralelo con test, depende solo de typecheck) ──────────────────────
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -84,59 +77,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect package manager
-        id: pm
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -f package-lock.json ]]; then
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=package-lock.json" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
-          elif [[ -f pnpm-lock.yaml ]]; then
-            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=pnpm-lock.yaml" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          elif [[ -f yarn.lock ]]; then
-            echo "manager=yarn" >> "$GITHUB_OUTPUT"
-            echo "lockfile=yarn.lock" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=yarn install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          else
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=" >> "$GITHUB_OUTPUT"
-            echo "use_cache=false" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm install" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Node.js (with cache)
-        if: steps.pm.outputs.use_cache == 'true'
-        uses: actions/setup-node@v4
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: ${{ steps.pm.outputs.manager }}
-          cache-dependency-path: ${{ steps.pm.outputs.lockfile }}
-
-      - name: Setup Node.js (without cache)
-        if: steps.pm.outputs.use_cache != 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        shell: bash
-        run: ${{ steps.pm.outputs.install_cmd }}
+          path: node_modules
+          key: ${{ needs.install.outputs.cache-key }}
 
       - name: Lint workspace or affected projects
-        shell: bash
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            npx nx affected --target=lint --base="origin/${{ github.base_ref }}" --head="${{ github.sha }}" --parallel=3 | tee lint.log
+            npx nx affected --target=lint --base="origin/${{ github.base_ref }}" --head="${{ github.sha }}" --parallel=4 | tee lint.log
           else
-            npx nx run-many -t lint --all --parallel=3 | tee lint.log
+            npx nx run-many -t lint --all --parallel=4 | tee lint.log
           fi
 
       - name: Upload lint logs
@@ -147,6 +100,7 @@ jobs:
           path: lint.log
           if-no-files-found: warn
 
+  # ─── Test (paralelo con lint, depende solo de typecheck) ──────────────────────
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -157,59 +111,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect package manager
-        id: pm
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -f package-lock.json ]]; then
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=package-lock.json" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
-          elif [[ -f pnpm-lock.yaml ]]; then
-            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=pnpm-lock.yaml" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          elif [[ -f yarn.lock ]]; then
-            echo "manager=yarn" >> "$GITHUB_OUTPUT"
-            echo "lockfile=yarn.lock" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=yarn install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          else
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=" >> "$GITHUB_OUTPUT"
-            echo "use_cache=false" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm install" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Node.js (with cache)
-        if: steps.pm.outputs.use_cache == 'true'
-        uses: actions/setup-node@v4
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: ${{ steps.pm.outputs.manager }}
-          cache-dependency-path: ${{ steps.pm.outputs.lockfile }}
-
-      - name: Setup Node.js (without cache)
-        if: steps.pm.outputs.use_cache != 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        shell: bash
-        run: ${{ steps.pm.outputs.install_cmd }}
+          path: node_modules
+          key: ${{ needs.install.outputs.cache-key }}
 
       - name: Test workspace or affected projects
-        shell: bash
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            node ./tools/run-nx-with-node-options.cjs affected --target=test --base="origin/${{ github.base_ref }}" --head="${{ github.sha }}" --parallel=3 | tee test.log
+            node ./tools/run-nx-with-node-options.cjs affected --target=test --base="origin/${{ github.base_ref }}" --head="${{ github.sha }}" --parallel=4 | tee test.log
           else
-            node ./tools/run-nx-with-node-options.cjs run-many -t test --all --parallel=3 | tee test.log
+            node ./tools/run-nx-with-node-options.cjs run-many -t test --all --parallel=4 | tee test.log
           fi
 
       - name: Upload test logs
@@ -220,6 +134,7 @@ jobs:
           path: test.log
           if-no-files-found: warn
 
+  # ─── Build (espera lint + test en paralelo) ────────────────────────────────────
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -230,59 +145,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect package manager
-        id: pm
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -f package-lock.json ]]; then
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=package-lock.json" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
-          elif [[ -f pnpm-lock.yaml ]]; then
-            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=pnpm-lock.yaml" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          elif [[ -f yarn.lock ]]; then
-            echo "manager=yarn" >> "$GITHUB_OUTPUT"
-            echo "lockfile=yarn.lock" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=yarn install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          else
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=" >> "$GITHUB_OUTPUT"
-            echo "use_cache=false" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm install" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Node.js (with cache)
-        if: steps.pm.outputs.use_cache == 'true'
-        uses: actions/setup-node@v4
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: ${{ steps.pm.outputs.manager }}
-          cache-dependency-path: ${{ steps.pm.outputs.lockfile }}
-
-      - name: Setup Node.js (without cache)
-        if: steps.pm.outputs.use_cache != 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        shell: bash
-        run: ${{ steps.pm.outputs.install_cmd }}
+          path: node_modules
+          key: ${{ needs.install.outputs.cache-key }}
 
       - name: Build workspace or affected projects
-        shell: bash
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            npx nx affected --target=build --base="origin/${{ github.base_ref }}" --head="${{ github.sha }}" --parallel=2 | tee build.log
+            npx nx affected --target=build --base="origin/${{ github.base_ref }}" --head="${{ github.sha }}" --parallel=4 | tee build.log
           else
-            npx nx run-many -t build --all --parallel=2 | tee build.log
+            npx nx run-many -t build --all --parallel=4 | tee build.log
           fi
 
       - name: Upload build logs
@@ -301,67 +176,25 @@ jobs:
           path: dist/
           if-no-files-found: warn
 
+  # ─── E2E (espera build) ───────────────────────────────────────────────────────
   e2e:
     name: E2E
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [install, build]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
         with:
-          fetch-depth: 0
-
-      - name: Detect package manager
-        id: pm
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -f package-lock.json ]]; then
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=package-lock.json" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
-          elif [[ -f pnpm-lock.yaml ]]; then
-            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=pnpm-lock.yaml" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          elif [[ -f yarn.lock ]]; then
-            echo "manager=yarn" >> "$GITHUB_OUTPUT"
-            echo "lockfile=yarn.lock" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=yarn install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          else
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "lockfile=" >> "$GITHUB_OUTPUT"
-            echo "use_cache=false" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm install" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Node.js (with cache)
-        if: steps.pm.outputs.use_cache == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: ${{ steps.pm.outputs.manager }}
-          cache-dependency-path: ${{ steps.pm.outputs.lockfile }}
-
-      - name: Setup Node.js (without cache)
-        if: steps.pm.outputs.use_cache != 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        shell: bash
-        run: ${{ steps.pm.outputs.install_cmd }}
+          path: node_modules
+          key: ${{ needs.install.outputs.cache-key }}
 
       - name: Install Playwright browser
-        shell: bash
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright E2E
-        shell: bash
         run: npm run e2e
 
       - name: Upload Playwright report

@@ -1,7 +1,7 @@
 # TechGear Inventory Pro
 
-[![CI](https://github.com/lrangel/techgear/actions/workflows/ci.yml/badge.svg)](https://github.com/lrangel/techgear/actions/workflows/ci.yml)
-[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-2ea44f?logo=github)](https://lrangel.github.io/techgear/)
+[![CI](https://github.com/lrangela/techgear-inventory-pro/actions/workflows/ci.yml/badge.svg)](https://github.com/lrangela/techgear-inventory-pro/actions/workflows/ci.yml)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-2ea44f?logo=github)](https://lrangela.github.io/techgear-inventory-pro/)
 
 English and Spanish documentation for the current Nx workspace.
 Documentacion en ingles y espanol para el workspace actual de Nx.
@@ -12,6 +12,20 @@ Documentacion en ingles y espanol para el workspace actual de Nx.
 
 TechGear Inventory Pro is a dual-application Angular workspace built with Nx.
 It contains a customer storefront (`shop-web`) and an internal inventory/admin experience (`admin-panel`) that share domain libraries, validation rules, and UI primitives.
+
+Project routes:
+
+- Repository: `https://github.com/lrangela/techgear-inventory-pro`
+- Deployment: `https://lrangela.github.io/techgear-inventory-pro/`
+
+System split and route examples:
+
+- User shopping system (`shop-web`):
+- Local example routes: `http://localhost:4200/login`, `http://localhost:4200/catalog`, `http://localhost:4200/cart`
+- Deployed example routes: `https://lrangela.github.io/techgear-inventory-pro/`, `https://lrangela.github.io/techgear-inventory-pro/catalog`, `https://lrangela.github.io/techgear-inventory-pro/cart`
+- Administrator system (`admin-panel`):
+- Local example routes: `http://localhost:4201/login`, `http://localhost:4201/products`, `http://localhost:4201/inventory`
+- Deployed example routes: `https://lrangela.github.io/techgear-inventory-pro/admin/`, `https://lrangela.github.io/techgear-inventory-pro/admin/products`, `https://lrangela.github.io/techgear-inventory-pro/admin/inventory`
 
 The repository is structured as a frontend architecture demo focused on:
 
@@ -155,6 +169,20 @@ Important: DummyJSON authentication uses `username` and `password`, not email. T
 
 TechGear Inventory Pro es un workspace de Angular con dos aplicaciones montado sobre Nx.
 Incluye una tienda para cliente (`shop-web`) y una experiencia interna de administracion e inventario (`admin-panel`) que comparten librerias de dominio, validaciones y componentes reutilizables.
+
+Rutas del proyecto:
+
+- Repositorio: `https://github.com/lrangela/techgear-inventory-pro`
+- Despliegue: `https://lrangela.github.io/techgear-inventory-pro/`
+
+Division de sistemas y ejemplos de rutas:
+
+- Sistema de compra para usuario (`shop-web`):
+- Rutas locales de ejemplo: `http://localhost:4200/login`, `http://localhost:4200/catalog`, `http://localhost:4200/cart`
+- Rutas desplegadas de ejemplo: `https://lrangela.github.io/techgear-inventory-pro/`, `https://lrangela.github.io/techgear-inventory-pro/catalog`, `https://lrangela.github.io/techgear-inventory-pro/cart`
+- Sistema de administrador (`admin-panel`):
+- Rutas locales de ejemplo: `http://localhost:4201/login`, `http://localhost:4201/products`, `http://localhost:4201/inventory`
+- Rutas desplegadas de ejemplo: `https://lrangela.github.io/techgear-inventory-pro/admin/`, `https://lrangela.github.io/techgear-inventory-pro/admin/products`, `https://lrangela.github.io/techgear-inventory-pro/admin/inventory`
 
 El repositorio esta orientado a mostrar una arquitectura frontend con foco en:
 
