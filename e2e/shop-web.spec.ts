@@ -10,8 +10,8 @@ test.describe('shop-web', () => {
       page.getByRole('heading', { name: 'TechGear Inventory Pro' })
     ).toBeVisible();
 
-    await page.getByLabel('Username').fill('emilys');
-    await page.getByLabel('Password').fill('emilyspass');
+    await page.getByLabel('Username').fill('shop-demo');
+    await page.getByLabel('Password').fill('ShopDemo123!');
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeEnabled();
     await page.getByRole('button', { name: 'Sign in' }).click();
 

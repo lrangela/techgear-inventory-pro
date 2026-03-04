@@ -12,10 +12,10 @@ test.describe('admin-panel', () => {
     await expect(
       page.getByLabel('Demo credentials')
     ).toBeVisible();
-    await expect(page.getByText('emilys', { exact: true })).toBeVisible();
-    await expect(page.getByText('emilyspass', { exact: true })).toBeVisible();
-    await page.getByLabel('Username').fill('emilys');
-    await page.getByLabel('Password').fill('emilyspass');
+    await expect(page.getByText('admin-demo', { exact: true })).toBeVisible();
+    await expect(page.getByText('AdminDemo123!', { exact: true })).toBeVisible();
+    await page.getByLabel('Username').fill('admin-demo');
+    await page.getByLabel('Password').fill('AdminDemo123!');
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeEnabled();
   });
 });
