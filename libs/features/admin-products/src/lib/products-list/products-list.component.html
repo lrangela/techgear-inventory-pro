@@ -1,0 +1,143 @@
+<section class="tg-space-y-6">
+  @if (isDemoMode()) {
+  <div class="tg-rounded-2xl tg-border tg-border-amber-200 tg-bg-amber-50 tg-p-4 tg-text-sm tg-text-amber-800">
+    <p class="tg-font-semibold">Demo mode</p>
+    <p class="tg-mt-1">{{ demoModeMessage() }}</p>
+  </div>
+  }
+
+  <div
+    class="tg-flex tg-flex-col tg-gap-4 tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-6 sm:tg-flex-row sm:tg-items-center sm:tg-justify-between"
+  >
+    <div>
+      <h2 class="tg-text-2xl tg-font-semibold tg-text-slate-900">Manage Products</h2>
+      <p class="tg-mt-1 tg-text-sm tg-text-slate-500">Filter by category and browse by pages.</p>
+    </div>
+    <a
+      routerLink="new"
+      [class.tg-pointer-events-none]="hasPendingMutations()"
+      [class.tg-opacity-60]="hasPendingMutations()"
+      class="tg-inline-flex tg-items-center tg-justify-center tg-rounded-lg tg-bg-slate-900 tg-px-4 tg-py-2.5 tg-text-sm tg-font-medium tg-text-white tg-transition hover:tg-bg-slate-700"
+    >
+      + New Product
+    </a>
+  </div>
+
+  @if (mutationStatus() === 'pending') {
+  <div class="tg-rounded-2xl tg-border tg-border-blue-200 tg-bg-blue-50 tg-p-4 tg-text-sm tg-text-blue-800">
+    Applying changes...
+  </div>
+  }
+
+  <div class="tg-grid tg-gap-3 tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-4 md:tg-grid-cols-[1fr_auto]">
+    <div class="tg-grid tg-gap-1">
+      <label class="tg-text-sm tg-font-medium tg-text-slate-700" for="categoryFilter">Category</label>
+      <select
+        id="categoryFilter"
+        [ngModel]="selectedCategory() ?? ''"
+        (ngModelChange)="onCategoryChange($event)"
+        class="tg-w-full tg-max-w-md tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+      >
+        <option value="">All</option>
+        @for (category of categories(); track category.id) {
+        <option [value]="category.id">{{ category.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="tg-flex tg-items-end tg-justify-end tg-text-sm tg-text-slate-500">
+      {{ filteredProducts().length }} products
+    </div>
+  </div>
+
+  @if (productsStore.isLoading()) {
+  <div class="tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-10 tg-text-center">
+    <p class="tg-text-slate-500">Loading products...</p>
+  </div>
+  } @else if (productsStore.error()) {
+  <div class="tg-rounded-2xl tg-border tg-border-red-200 tg-bg-red-50 tg-p-4 tg-text-red-700">
+    <p>Failed to load products: {{ productsStore.error() }}</p>
+  </div>
+  } @else if (mutationError()) {
+  <div class="tg-rounded-2xl tg-border tg-border-amber-200 tg-bg-amber-50 tg-p-4 tg-text-amber-800">
+    <p>{{ mutationError() }}</p>
+  </div>
+  } @else if (filteredProducts().length === 0) {
+  <div class="tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-10 tg-text-center">
+    <p class="tg-text-slate-500">No products found for the selected category.</p>
+  </div>
+  } @else {
+  <div class="tg-overflow-hidden tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white">
+    <div class="tg-grid tg-grid-cols-1 tg-gap-4 tg-p-4 md:tg-grid-cols-2 xl:tg-grid-cols-3">
+      @for (product of paginatedProducts(); track product.id) {
+      <article
+        class="tg-flex tg-flex-col tg-overflow-hidden tg-rounded-xl tg-border tg-border-slate-200 tg-bg-slate-50"
+      >
+        <div class="tg-aspect-[4/3] tg-overflow-hidden tg-bg-slate-100">
+          <img
+            [src]="getProductImage(product)"
+            [alt]="product.title"
+            class="tg-h-full tg-w-full tg-object-cover tg-transition-transform tg-duration-300 hover:tg-scale-105"
+            loading="lazy"
+          />
+        </div>
+        <div class="tg-flex tg-flex-1 tg-flex-col tg-gap-3 tg-p-4">
+          <div class="tg-space-y-1">
+            <h3 class="tg-line-clamp-2 tg-text-base tg-font-semibold tg-text-slate-900">{{ product.title }}</h3>
+            <p class="tg-text-sm tg-text-slate-500">#{{ product.id }}</p>
+          </div>
+
+          <div class="tg-flex tg-items-center tg-justify-between">
+            <p class="tg-text-lg tg-font-bold tg-text-slate-900">{{ product.price | currency }}</p>
+            <span
+              class="tg-inline-flex tg-rounded-full tg-bg-slate-200 tg-px-3 tg-py-1 tg-text-xs tg-font-semibold tg-text-slate-700"
+            >
+              {{ getCategoryLabel(product) }}
+            </span>
+          </div>
+
+          <div class="tg-mt-auto tg-flex tg-justify-end tg-gap-2">
+            <button
+              type="button"
+              (click)="onDelete(product)"
+              [disabled]="isDeletePending(product.id)"
+              class="tg-inline-flex tg-items-center tg-rounded-md tg-border tg-border-rose-300 tg-bg-rose-50 tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-rose-700 tg-transition hover:tg-bg-rose-100 disabled:tg-cursor-not-allowed disabled:tg-opacity-60"
+            >
+              {{ isDeletePending(product.id) ? 'Deleting...' : 'Delete' }}
+            </button>
+            <a
+              [routerLink]="['/products', product.id]"
+              class="tg-inline-flex tg-items-center tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 tg-transition hover:tg-bg-slate-100"
+            >
+              Edit
+            </a>
+          </div>
+        </div>
+      </article>
+      }
+    </div>
+  </div>
+
+  <div class="tg-flex tg-items-center tg-justify-between tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-4">
+    <button
+      type="button"
+      (click)="onPrevPage()"
+      [disabled]="!canGoPrev()"
+      class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 hover:tg-bg-slate-100 disabled:tg-cursor-not-allowed disabled:tg-opacity-50"
+    >
+      Previous
+    </button>
+
+    <span class="tg-text-sm tg-font-medium tg-text-slate-600">Page {{ page() }} of {{ totalPages() }}</span>
+
+    <button
+      type="button"
+      (click)="onNextPage()"
+      [disabled]="!canGoNext()"
+      class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 hover:tg-bg-slate-100 disabled:tg-cursor-not-allowed disabled:tg-opacity-50"
+    >
+      Next
+    </button>
+  </div>
+  }
+</section>

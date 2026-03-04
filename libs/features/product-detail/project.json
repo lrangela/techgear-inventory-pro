@@ -1,0 +1,19 @@
+{
+  "name": "product-detail",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/features/product-detail/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["type:feature"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest -c libs/features/product-detail/vitest.config.ts --run"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

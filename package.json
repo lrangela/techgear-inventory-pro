@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {
     "prepare": "husky",
-    "typecheck": "tsc -p tsconfig.base.json --noEmit",
+    "typecheck": "tsc --build tsconfig.typecheck.json --pretty false",
     "lint": "nx run-many -t lint --all",
     "test": "node ./tools/run-nx-with-node-options.cjs run-many -t test --all",
     "build": "nx run-many -t build --all",

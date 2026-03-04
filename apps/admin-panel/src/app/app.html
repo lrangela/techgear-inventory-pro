@@ -1,0 +1,57 @@
+<main class="tg-min-h-screen tg-bg-slate-50">
+  <lib-error-banner />
+  <header class="tg-border-b tg-border-slate-200 tg-bg-white">
+    <div
+      class="tg-mx-auto tg-flex tg-max-w-7xl tg-items-center tg-justify-between tg-gap-4 tg-px-6 tg-py-4"
+    >
+      <div>
+        <h1 class="tg-text-xl tg-font-semibold tg-text-slate-900">
+          TechGear Inventory Pro
+        </h1>
+        <p class="tg-text-sm tg-text-slate-500">Admin Panel</p>
+      </div>
+
+      <div class="tg-flex tg-items-center tg-gap-4">
+        <nav class="tg-flex tg-items-center tg-gap-2">
+          <a
+            routerLink="/products"
+            routerLinkActive="tg-bg-slate-900 tg-text-white"
+            class="tg-rounded-md tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 tg-transition hover:tg-bg-slate-100"
+            >Products</a
+          >
+          <a
+            routerLink="/inventory"
+            routerLinkActive="tg-bg-slate-900 tg-text-white"
+            class="tg-rounded-md tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 tg-transition hover:tg-bg-slate-100"
+            >Inventory</a
+          >
+        </nav>
+
+        @if (isAuthenticated()) {
+        <div class="tg-hidden tg-text-right md:tg-block">
+          <p class="tg-text-sm tg-font-semibold tg-leading-none tg-text-slate-900">
+            {{ currentUser()?.name || 'Admin session' }}
+          </p>
+          <p class="tg-mt-1 tg-text-xs tg-text-slate-500">
+            {{ currentUser()?.email || 'Authenticated session' }}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="tg-inline-flex tg-items-center tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 tg-transition hover:tg-bg-slate-100"
+          (click)="logout()"
+        >
+          Logout
+        </button>
+        }
+      </div>
+    </div>
+  </header>
+
+  <section class="tg-mx-auto tg-max-w-7xl tg-p-6">
+    <router-outlet></router-outlet>
+  </section>
+</main>
+
+<lib-confirm-dialog-host />

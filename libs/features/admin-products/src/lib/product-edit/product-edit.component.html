@@ -1,0 +1,141 @@
+<section class="tg-mx-auto tg-max-w-4xl tg-space-y-6">
+  @if (isDemoMode()) {
+  <div class="tg-rounded-2xl tg-border tg-border-amber-200 tg-bg-amber-50 tg-p-4 tg-text-sm tg-text-amber-800">
+    <p class="tg-font-semibold">Demo mode</p>
+    <p class="tg-mt-1">{{ demoModeMessage() }}</p>
+  </div>
+  }
+
+  <div
+    class="tg-flex tg-flex-col tg-gap-4 tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-6 sm:tg-flex-row sm:tg-items-center sm:tg-justify-between"
+  >
+    <div>
+      <h2 class="tg-text-2xl tg-font-semibold tg-text-slate-900">{{ isNew ? 'New Product' : 'Edit Product' }}</h2>
+      <p class="tg-mt-1 tg-text-sm tg-text-slate-500">Update the main product information.</p>
+    </div>
+    <a
+      routerLink="/products"
+      [class.tg-pointer-events-none]="isSubmitting()"
+      [class.tg-opacity-60]="isSubmitting()"
+      class="tg-inline-flex tg-items-center tg-justify-center tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 hover:tg-bg-slate-100"
+    >
+      Back
+    </a>
+  </div>
+
+  @if (mutationStatus() === 'pending') {
+  <div class="tg-rounded-2xl tg-border tg-border-blue-200 tg-bg-blue-50 tg-p-4 tg-text-sm tg-text-blue-800">
+    Applying changes...
+  </div>
+  }
+
+  @if (isDetailLoading()) {
+  <div class="tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-10 tg-text-center">
+    <p class="tg-text-sm tg-font-medium tg-text-slate-700">Loading product details...</p>
+    <p class="tg-mt-2 tg-text-xs tg-text-slate-500">Please wait while the form is populated.</p>
+  </div>
+  } @else if (!isNew && selectedError()) {
+  <div class="tg-rounded-2xl tg-border tg-border-rose-200 tg-bg-rose-50 tg-p-4 tg-text-sm tg-text-rose-700">
+    Unable to load the product details. Please return to the list and try again.
+  </div>
+  } @else if (mutationError()) {
+  <div class="tg-rounded-2xl tg-border tg-border-rose-200 tg-bg-rose-50 tg-p-4 tg-text-sm tg-text-rose-700">
+    {{ mutationError() }}
+  </div>
+  } @else {
+  <form
+    [formGroup]="form"
+    (ngSubmit)="onSubmit()"
+    class="tg-grid tg-gap-6 tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-6"
+  >
+    <div class="tg-grid tg-gap-5 md:tg-grid-cols-2">
+      <label class="tg-grid tg-gap-1">
+        <span class="tg-text-sm tg-font-medium tg-text-slate-700">Title</span>
+        <input
+          type="text"
+          formControlName="title"
+          class="tg-w-full tg-rounded-md tg-border tg-border-slate-300 tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+        />
+      </label>
+
+      <label class="tg-grid tg-gap-1">
+        <span class="tg-text-sm tg-font-medium tg-text-slate-700">Price</span>
+        <input
+          type="number"
+          formControlName="price"
+          class="tg-w-full tg-rounded-md tg-border tg-border-slate-300 tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+        />
+      </label>
+    </div>
+
+    <label class="tg-grid tg-gap-1">
+      <span class="tg-text-sm tg-font-medium tg-text-slate-700">Description</span>
+      <textarea
+        formControlName="description"
+        rows="4"
+        class="tg-w-full tg-rounded-md tg-border tg-border-slate-300 tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+      ></textarea>
+    </label>
+
+    <div class="tg-grid tg-gap-5 md:tg-grid-cols-2">
+      <label class="tg-grid tg-gap-1">
+        <span class="tg-text-sm tg-font-medium tg-text-slate-700">Category</span>
+        <select
+          formControlName="categoryId"
+          class="tg-w-full tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+        >
+          <option value="">Select a category</option>
+          @for (category of categories(); track category.id) {
+          <option [value]="category.id">{{ category.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="tg-grid tg-gap-1">
+        <span class="tg-text-sm tg-font-medium tg-text-slate-700">Image URL</span>
+        <input
+          type="text"
+          formControlName="images"
+          class="tg-w-full tg-rounded-md tg-border tg-border-slate-300 tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+        />
+      </label>
+    </div>
+
+    <div class="tg-overflow-hidden tg-rounded-xl tg-border tg-border-slate-200 tg-bg-slate-50">
+      <img
+        [src]="form.value.images || 'https://placehold.co/900x360/e2e8f0/475569?text=Preview'"
+        alt="Preview"
+        class="tg-h-52 tg-w-full tg-object-cover"
+      />
+    </div>
+
+    <div class="tg-flex tg-justify-end tg-gap-3 tg-border-t tg-border-slate-100 tg-pt-4">
+      @if (!isNew) {
+      <button
+        type="button"
+        (click)="onDelete()"
+        [disabled]="isSubmitting()"
+        class="tg-inline-flex tg-items-center tg-rounded-md tg-border tg-border-rose-300 tg-bg-rose-50 tg-px-4 tg-py-2 tg-text-sm tg-font-medium tg-text-rose-700 hover:tg-bg-rose-100 disabled:tg-cursor-not-allowed disabled:tg-opacity-50"
+      >
+        {{ isSubmitting() ? 'Deleting...' : 'Delete' }}
+      </button>
+      }
+      <a
+        routerLink="/products"
+        [class.tg-pointer-events-none]="isSubmitting()"
+        [class.tg-opacity-60]="isSubmitting()"
+        class="tg-inline-flex tg-items-center tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-4 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 hover:tg-bg-slate-100"
+      >
+        Cancel
+      </a>
+      <button
+        type="submit"
+        [disabled]="form.invalid || isSubmitting()"
+        class="tg-inline-flex tg-items-center tg-rounded-md tg-bg-slate-900 tg-px-4 tg-py-2 tg-text-sm tg-font-medium tg-text-white hover:tg-bg-slate-700 disabled:tg-cursor-not-allowed disabled:tg-opacity-50"
+      >
+        {{ isSubmitting() ? 'Saving...' : 'Save' }}
+      </button>
+    </div>
+  </form>
+  }
+</section>

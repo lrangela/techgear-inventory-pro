@@ -1,0 +1,66 @@
+<form
+  class="tg-mx-auto tg-w-full tg-max-w-md tg-space-y-5 tg-rounded-xl tg-border tg-border-slate-200 tg-bg-white tg-p-6 tg-shadow-sm"
+  (submit)="onSubmit($event)"
+  novalidate
+>
+  <div class="tg-space-y-1">
+    <h2 class="tg-text-xl tg-font-semibold tg-text-slate-900">Sign In</h2>
+    <p class="tg-text-sm tg-text-slate-600">Use your TechGear account to continue.</p>
+  </div>
+
+  <div class="tg-space-y-2">
+    <label class="tg-text-sm tg-font-medium tg-text-slate-800" for="login-username">Username</label>
+    <input
+      id="login-username"
+      type="text"
+      class="tg-w-full tg-rounded-md tg-border tg-px-3 tg-py-2 tg-text-sm focus:tg-outline-none focus:tg-ring-2"
+      [class.tg-border-rose-400]="!!usernameErrorMessage()"
+      [class.tg-border-slate-300]="!usernameErrorMessage()"
+      [attr.aria-invalid]="!!usernameErrorMessage()"
+      autocomplete="username"
+      [value]="loginForm.username().value()"
+      (input)="onUsernameInput(($any($event.target).value ?? '').toString())"
+      (blur)="onUsernameBlur()"
+    />
+    @if (usernameErrorMessage()) {
+      <p class="tg-text-sm tg-text-rose-700">{{ usernameErrorMessage() }}</p>
+    }
+  </div>
+
+  <div class="tg-space-y-2">
+    <label class="tg-text-sm tg-font-medium tg-text-slate-800" for="login-password">Password</label>
+    <input
+      id="login-password"
+      type="password"
+      class="tg-w-full tg-rounded-md tg-border tg-px-3 tg-py-2 tg-text-sm focus:tg-outline-none focus:tg-ring-2"
+      [class.tg-border-rose-400]="!!passwordErrorMessage()"
+      [class.tg-border-slate-300]="!passwordErrorMessage()"
+      [attr.aria-invalid]="!!passwordErrorMessage()"
+      autocomplete="current-password"
+      [value]="loginForm.password().value()"
+      (input)="onPasswordInput(($any($event.target).value ?? '').toString())"
+      (blur)="onPasswordBlur()"
+    />
+    @if (passwordErrorMessage()) {
+      <p class="tg-text-sm tg-text-rose-700">{{ passwordErrorMessage() }}</p>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="tg-rounded-md tg-border tg-border-rose-200 tg-bg-rose-50 tg-p-3 tg-text-sm tg-text-rose-700">
+      {{ error() }}
+    </div>
+  }
+
+  <button
+    type="submit"
+    class="tg-inline-flex tg-w-full tg-justify-center tg-rounded-md tg-bg-slate-900 tg-px-4 tg-py-2 tg-text-sm tg-font-medium tg-text-white hover:tg-bg-slate-700 disabled:tg-cursor-not-allowed disabled:tg-opacity-50"
+    [disabled]="disableSubmit()"
+  >
+    @if (loading()) {
+      Signing in...
+    } @else {
+      Sign in
+    }
+  </button>
+</form>

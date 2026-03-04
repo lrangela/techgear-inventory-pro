@@ -1,0 +1,19 @@
+{
+  "name": "catalog",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/features/catalog/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["type:feature"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest -c libs/features/catalog/vitest.config.ts --run"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

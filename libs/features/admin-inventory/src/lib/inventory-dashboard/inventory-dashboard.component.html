@@ -1,0 +1,240 @@
+<section class="tg-space-y-6">
+  <div
+    class="tg-flex tg-flex-col tg-gap-4 tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-6 sm:tg-flex-row sm:tg-items-center sm:tg-justify-between"
+  >
+    <div>
+      <h2 class="tg-text-2xl tg-font-semibold tg-text-slate-900">Inventory Dashboard</h2>
+      <p class="tg-mt-1 tg-text-sm tg-text-slate-500">
+        Data source: localStorage (key <code class="tg-font-mono">techgear_inventory</code>) through
+        <code class="tg-font-mono">InventoryStore</code>.
+      </p>
+    </div>
+  </div>
+
+  <div class="tg-grid tg-gap-4 sm:tg-grid-cols-3">
+    <article class="tg-rounded-xl tg-border tg-border-slate-200 tg-bg-white tg-p-4">
+      <p class="tg-text-sm tg-text-slate-500">Products in inventory</p>
+      <p class="tg-mt-2 tg-text-2xl tg-font-bold tg-text-slate-900">{{ totalProducts() }}</p>
+    </article>
+    <article class="tg-rounded-xl tg-border tg-border-slate-200 tg-bg-white tg-p-4">
+      <p class="tg-text-sm tg-text-slate-500">Total units</p>
+      <p class="tg-mt-2 tg-text-2xl tg-font-bold tg-text-slate-900">{{ totalUnits() }}</p>
+    </article>
+    <article class="tg-rounded-xl tg-border tg-border-slate-200 tg-bg-white tg-p-4">
+      <p class="tg-text-sm tg-text-slate-500">Recorded movements</p>
+      <p class="tg-mt-2 tg-text-2xl tg-font-bold tg-text-slate-900">{{ totalMovements() }}</p>
+    </article>
+  </div>
+
+  <form
+    class="tg-grid tg-gap-4 tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-6 md:tg-grid-cols-2"
+    [formGroup]="movementForm"
+    (ngSubmit)="onAdjustStockSubmit()"
+  >
+    <div class="md:tg-col-span-2 tg-rounded-lg tg-bg-slate-50 tg-p-3 tg-text-sm tg-text-slate-600">
+      Select movement details instead of entering free text. This reduces mistakes and speeds up inventory updates.
+    </div>
+
+    <label class="tg-grid tg-gap-1">
+      <span class="tg-text-sm tg-font-medium tg-text-slate-700">Product source</span>
+      <select
+        formControlName="productMode"
+        class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+      >
+        <option value="existing">Existing product</option>
+        <option value="new">New product</option>
+      </select>
+    </label>
+
+    @if (movementForm.controls.productMode.value === 'existing') {
+    <label class="tg-grid tg-gap-1">
+      <span class="tg-text-sm tg-font-medium tg-text-slate-700">Product</span>
+      <select
+        formControlName="selectedProductId"
+        class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+      >
+        <option [value]="0">Select a product</option>
+        @for (item of selectableProducts(); track item.productId) {
+        <option [value]="item.productId">
+          #{{ item.productId }} - {{ item.productName }} (stock: {{ item.stock }})
+        </option>
+        }
+      </select>
+    </label>
+    } @else {
+    <label class="tg-grid tg-gap-1">
+      <span class="tg-text-sm tg-font-medium tg-text-slate-700">New product ID</span>
+      <input
+        type="number"
+        min="1"
+        formControlName="newProductId"
+        class="tg-rounded-md tg-border tg-border-slate-300 tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+      />
+    </label>
+
+    <label class="tg-grid tg-gap-1">
+      <span class="tg-text-sm tg-font-medium tg-text-slate-700">New product name</span>
+      <input
+        type="text"
+        formControlName="newProductName"
+        class="tg-rounded-md tg-border tg-border-slate-300 tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+      />
+    </label>
+    }
+
+    <label class="tg-grid tg-gap-1">
+      <span class="tg-text-sm tg-font-medium tg-text-slate-700">Movement type</span>
+      <select
+        formControlName="movementType"
+        class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+      >
+        <option value="in">Entry (+)</option>
+        <option value="out">Exit (-)</option>
+      </select>
+    </label>
+
+    <label class="tg-grid tg-gap-1">
+      <span class="tg-text-sm tg-font-medium tg-text-slate-700">Quantity</span>
+      <input
+        type="number"
+        min="1"
+        formControlName="quantity"
+        class="tg-rounded-md tg-border tg-border-slate-300 tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+      />
+    </label>
+
+    <label class="tg-grid tg-gap-1">
+      <span class="tg-text-sm tg-font-medium tg-text-slate-700">Reason</span>
+      <select
+        formControlName="reasonPreset"
+        class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+      >
+        <option value="">Select a reason</option>
+        <option value="purchase">Purchase</option>
+        <option value="sale">Sale</option>
+        <option value="restock">Restock</option>
+        <option value="return">Return</option>
+        <option value="damage">Damage/Loss</option>
+        <option value="audit">Inventory audit</option>
+        <option value="other">Other</option>
+      </select>
+    </label>
+
+    @if (movementForm.controls.reasonPreset.value === 'other') {
+    <label class="tg-grid tg-gap-1">
+      <span class="tg-text-sm tg-font-medium tg-text-slate-700">Other reason</span>
+      <input
+        type="text"
+        formControlName="reasonOther"
+        class="tg-rounded-md tg-border tg-border-slate-300 tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
+      />
+    </label>
+    }
+
+    <div class="md:tg-col-span-2 tg-flex tg-flex-wrap tg-gap-2 tg-text-sm">
+      <span class="tg-rounded-md tg-bg-slate-100 tg-px-3 tg-py-1 tg-text-slate-700">
+        Delta preview:
+        <strong [class.tg-text-emerald-600]="previewDelta() > 0" [class.tg-text-rose-600]="previewDelta() < 0">
+          {{ previewDelta() > 0 ? '+' : '' }}{{ previewDelta() }}
+        </strong>
+      </span>
+      @if (selectedStock() !== null) {
+      <span class="tg-rounded-md tg-bg-slate-100 tg-px-3 tg-py-1 tg-text-slate-700">
+        Current stock: <strong>{{ selectedStock() }}</strong>
+      </span>
+      }
+    </div>
+
+    @if (formError()) {
+    <p class="md:tg-col-span-2 tg-rounded-md tg-border tg-border-rose-200 tg-bg-rose-50 tg-p-3 tg-text-sm tg-text-rose-700">
+      {{ formError() }}
+    </p>
+    }
+
+    @if (successMessage()) {
+    <p class="md:tg-col-span-2 tg-rounded-md tg-border tg-border-emerald-200 tg-bg-emerald-50 tg-p-3 tg-text-sm tg-text-emerald-700">
+      {{ successMessage() }}
+    </p>
+    }
+
+    <div class="md:tg-col-span-2 tg-flex tg-justify-end">
+      <button
+        type="submit"
+        [disabled]="!!formError()"
+        class="tg-rounded-md tg-bg-slate-900 tg-px-4 tg-py-2 tg-text-sm tg-font-medium tg-text-white hover:tg-bg-slate-700 disabled:tg-cursor-not-allowed disabled:tg-bg-slate-300 disabled:tg-text-slate-500"
+      >
+        Record movement
+      </button>
+    </div>
+  </form>
+
+  <div class="tg-grid tg-gap-6 xl:tg-grid-cols-2">
+    <section class="tg-overflow-hidden tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white">
+      <header class="tg-border-b tg-border-slate-200 tg-p-4">
+        <h3 class="tg-text-lg tg-font-semibold tg-text-slate-900">Current stock</h3>
+      </header>
+
+      @if (inventoryStore.items().length === 0) {
+      <p class="tg-p-6 tg-text-sm tg-text-slate-500">No products in inventory yet.</p>
+      } @else {
+      <div class="tg-overflow-x-auto">
+        <table class="tg-min-w-full">
+          <thead class="tg-bg-slate-50">
+            <tr>
+              <th class="tg-px-4 tg-py-3 tg-text-left tg-text-xs tg-font-semibold tg-uppercase tg-text-slate-500">ID</th>
+              <th class="tg-px-4 tg-py-3 tg-text-left tg-text-xs tg-font-semibold tg-uppercase tg-text-slate-500">Product</th>
+              <th class="tg-px-4 tg-py-3 tg-text-left tg-text-xs tg-font-semibold tg-uppercase tg-text-slate-500">Stock</th>
+              <th class="tg-px-4 tg-py-3 tg-text-left tg-text-xs tg-font-semibold tg-uppercase tg-text-slate-500">Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of inventoryStore.items(); track item.productId) {
+            <tr class="tg-border-t tg-border-slate-100">
+              <td class="tg-px-4 tg-py-3 tg-text-sm tg-text-slate-700">{{ item.productId }}</td>
+              <td class="tg-px-4 tg-py-3 tg-text-sm tg-font-medium tg-text-slate-900">{{ item.productName }}</td>
+              <td class="tg-px-4 tg-py-3 tg-text-sm tg-font-semibold tg-text-slate-900">{{ item.stock }}</td>
+              <td class="tg-px-4 tg-py-3 tg-text-sm tg-text-slate-500">{{ item.lastUpdated | date:'short' }}</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    </section>
+
+    <section class="tg-overflow-hidden tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white">
+      <header class="tg-border-b tg-border-slate-200 tg-p-4">
+        <h3 class="tg-text-lg tg-font-semibold tg-text-slate-900">Movement history</h3>
+      </header>
+
+      @if (inventoryStore.movements().length === 0) {
+      <p class="tg-p-6 tg-text-sm tg-text-slate-500">No movement records yet.</p>
+      } @else {
+      <div class="tg-max-h-[460px] tg-overflow-auto">
+        <table class="tg-min-w-full">
+          <thead class="tg-sticky tg-top-0 tg-bg-slate-50">
+            <tr>
+              <th class="tg-px-4 tg-py-3 tg-text-left tg-text-xs tg-font-semibold tg-uppercase tg-text-slate-500">Date</th>
+              <th class="tg-px-4 tg-py-3 tg-text-left tg-text-xs tg-font-semibold tg-uppercase tg-text-slate-500">Product</th>
+              <th class="tg-px-4 tg-py-3 tg-text-left tg-text-xs tg-font-semibold tg-uppercase tg-text-slate-500">Delta</th>
+              <th class="tg-px-4 tg-py-3 tg-text-left tg-text-xs tg-font-semibold tg-uppercase tg-text-slate-500">Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (movement of inventoryStore.movements(); track movement.id) {
+            <tr class="tg-border-t tg-border-slate-100">
+              <td class="tg-px-4 tg-py-3 tg-text-sm tg-text-slate-500">{{ movement.timestamp | date:'short' }}</td>
+              <td class="tg-px-4 tg-py-3 tg-text-sm tg-font-medium tg-text-slate-900">{{ movement.productName }}</td>
+              <td class="tg-px-4 tg-py-3 tg-text-sm tg-font-semibold" [class.tg-text-emerald-600]="movement.delta > 0" [class.tg-text-rose-600]="movement.delta < 0">
+                {{ movement.delta > 0 ? '+' : '' }}{{ movement.delta }}
+              </td>
+              <td class="tg-px-4 tg-py-3 tg-text-sm tg-text-slate-500">{{ movement.reason || '-' }}</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    </section>
+  </div>
+</section>

@@ -1,0 +1,45 @@
+<section class="tg-min-h-screen tg-bg-slate-50 tg-p-6">
+  <div class="tg-mx-auto tg-max-w-md tg-space-y-3">
+    <h1 class="tg-text-2xl tg-font-semibold tg-text-slate-900">{{ title }}</h1>
+    <p class="tg-text-sm tg-text-slate-600">{{ subtitle }}</p>
+  </div>
+
+  @if (demoAccount) {
+    <div
+      class="tg-mx-auto tg-mt-4 tg-grid tg-max-w-md tg-gap-3 tg-rounded-xl tg-border tg-border-amber-200 tg-bg-amber-50 tg-p-4"
+      aria-label="Demo credentials"
+    >
+      <div class="tg-space-y-1">
+        <h2 class="tg-text-sm tg-font-semibold tg-uppercase tg-tracking-wide tg-text-amber-900">
+          Demo Credentials
+        </h2>
+        <p class="tg-text-sm tg-text-amber-800">
+          GitHub Pages demo build uses DummyJSON. Sign-in requires the username below; email is shown for portfolio context.
+        </p>
+      </div>
+
+      <dl class="tg-grid tg-gap-2 tg-text-sm">
+        <div class="tg-grid tg-gap-1">
+          <dt class="tg-font-medium tg-text-amber-950">Email</dt>
+          <dd class="tg-break-all tg-text-amber-900">{{ demoAccount.email }}</dd>
+        </div>
+        <div class="tg-grid tg-gap-1">
+          <dt class="tg-font-medium tg-text-amber-950">Username</dt>
+          <dd class="tg-break-all tg-font-mono tg-text-amber-900">{{ demoAccount.username }}</dd>
+        </div>
+        <div class="tg-grid tg-gap-1">
+          <dt class="tg-font-medium tg-text-amber-950">Password</dt>
+          <dd class="tg-break-all tg-font-mono tg-text-amber-900">{{ demoAccount.password }}</dd>
+        </div>
+      </dl>
+    </div>
+  }
+
+  <lib-login-form
+    class="tg-mt-4"
+    [loading]="isLoading()"
+    [error]="errorMessage()"
+    [prefillCredentials]="demoCredentials"
+    (submitCredentials)="onSubmit($event)"
+  />
+</section>

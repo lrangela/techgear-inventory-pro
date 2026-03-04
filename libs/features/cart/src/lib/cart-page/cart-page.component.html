@@ -1,0 +1,104 @@
+<section class="tg-mx-auto tg-w-full tg-max-w-6xl tg-space-y-6 tg-p-6">
+  <header class="tg-flex tg-items-center tg-justify-between">
+    <div>
+      <p class="tg-text-xs tg-uppercase tg-tracking-wide tg-text-slate-500">Shop</p>
+      <h1 class="tg-text-3xl tg-font-bold tg-text-slate-900">Shopping Cart</h1>
+    </div>
+    <a
+      routerLink="/catalog"
+      class="tg-inline-flex tg-items-center tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-4 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 hover:tg-bg-slate-100"
+    >
+      Continue shopping
+    </a>
+  </header>
+
+  @if (cartStore.items().length === 0) {
+  <div class="tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-12 tg-text-center">
+    <p class="tg-text-xl tg-font-semibold tg-text-slate-700">Your cart is empty</p>
+    <a routerLink="/catalog" class="tg-mt-4 tg-inline-block tg-text-sm tg-font-semibold tg-text-indigo-600 hover:tg-underline">
+      Back to catalog
+    </a>
+  </div>
+  } @else {
+  <div class="tg-grid tg-gap-8 lg:tg-grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+    <div class="tg-space-y-4">
+      @for (item of cartStore.items(); track item.productId) {
+      <article class="tg-grid tg-gap-4 tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-4 sm:tg-grid-cols-[88px_minmax(0,1fr)_auto] sm:tg-items-center">
+        <div class="tg-overflow-hidden tg-rounded-xl tg-bg-slate-100">
+          @if (item.imageUrl) {
+          <img [src]="item.imageUrl" [alt]="item.title" class="tg-h-[88px] tg-w-[88px] tg-object-cover">
+          } @else {
+          <div class="tg-flex tg-h-[88px] tg-w-[88px] tg-items-center tg-justify-center tg-text-xs tg-text-slate-500">No image</div>
+          }
+        </div>
+
+        <div class="tg-space-y-1">
+          <h3 class="tg-text-base tg-font-semibold tg-text-slate-900">{{ item.title }}</h3>
+          <p class="tg-text-sm tg-text-slate-500">{{ item.price | currency }} each</p>
+          <p class="tg-text-sm tg-font-semibold tg-text-slate-800">Subtotal: {{ item.price * item.quantity | currency }}</p>
+        </div>
+
+        <div class="tg-flex tg-items-center tg-gap-3 sm:tg-justify-self-end">
+          <div class="tg-inline-flex tg-items-center tg-rounded-lg tg-border tg-border-slate-300 tg-bg-white">
+            <button
+              (click)="onUpdateQuantity(item.productId, item.quantity - 1)"
+              class="tg-h-9 tg-w-9 tg-text-base tg-font-semibold tg-text-slate-600 hover:tg-bg-slate-100 disabled:tg-opacity-50"
+              [disabled]="item.quantity <= 1"
+              aria-label="Decrease quantity"
+            >
+              -
+            </button>
+            <span class="tg-min-w-10 tg-text-center tg-text-sm tg-font-semibold tg-text-slate-900">{{ item.quantity }}</span>
+            <button
+              (click)="onUpdateQuantity(item.productId, item.quantity + 1)"
+              class="tg-h-9 tg-w-9 tg-text-base tg-font-semibold tg-text-slate-600 hover:tg-bg-slate-100"
+              aria-label="Increase quantity"
+            >
+              +
+            </button>
+          </div>
+
+          <button
+            (click)="onRemoveItem(item.productId)"
+            class="tg-inline-flex tg-h-9 tg-w-9 tg-items-center tg-justify-center tg-rounded-md tg-text-rose-600 hover:tg-bg-rose-50"
+            aria-label="Remove item"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="tg-h-5 tg-w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </article>
+      }
+    </div>
+
+    <aside class="tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-6 lg:tg-sticky lg:tg-top-6">
+      <h2 class="tg-text-xl tg-font-semibold tg-text-slate-900">Order summary</h2>
+
+      <div class="tg-mt-5 tg-space-y-3">
+        <div class="tg-flex tg-items-center tg-justify-between tg-text-sm">
+          <span class="tg-text-slate-500">Items ({{ cartStore.totalItems() }})</span>
+          <span class="tg-font-medium tg-text-slate-800">{{ cartStore.totalPrice() | currency }}</span>
+        </div>
+        <div class="tg-flex tg-items-center tg-justify-between tg-border-t tg-border-slate-200 tg-pt-4">
+          <span class="tg-text-base tg-font-semibold tg-text-slate-800">Total</span>
+          <span class="tg-text-2xl tg-font-bold tg-text-indigo-700">{{ cartStore.totalPrice() | currency }}</span>
+        </div>
+      </div>
+
+      <button
+        class="tg-mt-6 tg-w-full tg-rounded-lg tg-bg-indigo-600 tg-py-3 tg-text-sm tg-font-semibold tg-text-white tg-transition-colors hover:tg-bg-indigo-700"
+      >
+        Proceed to Checkout
+      </button>
+
+      <button
+        (click)="onClearCart()"
+        class="tg-mt-3 tg-w-full tg-rounded-lg tg-border tg-border-slate-300 tg-bg-white tg-py-3 tg-text-sm tg-font-semibold tg-text-slate-700 hover:tg-bg-slate-100"
+      >
+        Clear Cart
+      </button>
+    </aside>
+  </div>
+  }
+</section>

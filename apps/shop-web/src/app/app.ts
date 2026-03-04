@@ -1,13 +1,13 @@
-import { Component } from '@angular/core';
-import { RouterModule } from '@angular/router';
-import { NxWelcome } from './nx-welcome';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { ErrorBannerComponent } from '@techgear/ui';
 
 @Component({
-  imports: [NxWelcome, RouterModule],
+  standalone: true,
+  imports: [RouterOutlet, ErrorBannerComponent],
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrl: './app.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class App {
-  protected title = 'shop-web';
-}
+export class App { }

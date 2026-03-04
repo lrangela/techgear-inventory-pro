@@ -1,0 +1,13 @@
+<label class="tg-flex tg-flex-col tg-gap-2">
+  <span class="tg-text-sm tg-font-medium">Category</span>
+  <select
+    class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm"
+    [ngModel]="selectedCategoryId()"
+    (ngModelChange)="onCategoryChange(($event ?? '').toString())"
+  >
+    <option value="">All categories</option>
+    @for (category of categories(); track category.id) {
+      <option [value]="category.id">{{ category.name }}</option>
+    }
+  </select>
+</label>

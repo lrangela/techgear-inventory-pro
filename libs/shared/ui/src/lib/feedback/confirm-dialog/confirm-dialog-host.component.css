@@ -1,0 +1,66 @@
+.tg-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  background: rgb(15 23 42 / 55%);
+  padding: 1rem;
+}
+
+.tg-confirm-dialog {
+  width: min(420px, 100%);
+  border-radius: 0.75rem;
+  border: 1px solid rgb(203 213 225);
+  background: #fff;
+  padding: 1.25rem;
+  box-shadow: 0 25px 50px -12px rgb(15 23 42 / 35%);
+}
+
+.tg-confirm-title {
+  margin: 0;
+  color: rgb(15 23 42);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.tg-confirm-message {
+  margin: 0.75rem 0 0;
+  color: rgb(51 65 85);
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
+.tg-confirm-actions {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.625rem;
+}
+
+.tg-confirm-cancel,
+.tg-confirm-accept {
+  border-radius: 0.5rem;
+  border: 1px solid rgb(203 213 225);
+  padding: 0.5rem 0.875rem;
+  background: #fff;
+  color: rgb(30 41 59);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tg-confirm-cancel:hover,
+.tg-confirm-accept:hover {
+  background: rgb(248 250 252);
+}
+
+.tg-confirm-danger {
+  border-color: rgb(251 113 133);
+  background: rgb(255 241 242);
+  color: rgb(190 18 60);
+}
+
+.tg-confirm-danger:hover {
+  background: rgb(255 228 230);
+}

@@ -4,7 +4,7 @@
   "projectType": "application",
   "prefix": "app",
   "sourceRoot": "apps/shop-web/src",
-  "tags": [],
+  "tags": ["type:feature"],
   "targets": {
     "build": {
       "executor": "@angular/build:application",
@@ -20,19 +20,14 @@
             "input": "apps/shop-web/public"
           }
         ],
-        "styles": ["apps/shop-web/src/styles.scss"],
-        "server": "apps/shop-web/src/main.server.ts",
-        "ssr": {
-          "entry": "apps/shop-web/src/server.ts"
-        },
-        "outputMode": "server"
+        "styles": ["apps/shop-web/src/styles.scss"]
       },
       "configurations": {
         "production": {
           "budgets": [
             {
               "type": "initial",
-              "maximumWarning": "500kb",
+              "maximumWarning": "650kb",
               "maximumError": "1mb"
             },
             {
@@ -44,6 +39,23 @@
           "outputHashing": "all"
         },
         "development": {
+          "fileReplacements": [
+            {
+              "replace": "apps/shop-web/src/environments/environment.ts",
+              "with": "apps/shop-web/src/environments/environment.development.ts"
+            }
+          ],
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true
+        },
+        "local": {
+          "fileReplacements": [
+            {
+              "replace": "apps/shop-web/src/environments/environment.ts",
+              "with": "apps/shop-web/src/environments/environment.local.ts"
+            }
+          ],
           "optimization": false,
           "extractLicenses": false,
           "sourceMap": true
@@ -60,6 +72,9 @@
         },
         "development": {
           "buildTarget": "shop-web:build:development"
+        },
+        "local": {
+          "buildTarget": "shop-web:build:local"
         }
       },
       "defaultConfiguration": "development"
@@ -68,15 +83,17 @@
       "executor": "@nx/eslint:lint"
     },
     "test": {
-      "executor": "@angular/build:unit-test",
-      "options": {}
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest -c apps/shop-web/vitest.config.ts --run"
+      }
     },
     "serve-static": {
       "continuous": true,
       "executor": "@nx/web:file-server",
       "options": {
         "buildTarget": "shop-web:build",
-        "staticFilePath": "dist/apps/shop-web/browser",
+        "staticFilePath": "dist/apps/shop-web",
         "spa": true
       }
     }

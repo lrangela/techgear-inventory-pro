@@ -1,0 +1,39 @@
+@if (confirmDialog.state(); as dialog) {
+<div
+  class="tg-confirm-overlay"
+  tabindex="0"
+  role="button"
+  aria-label="Close confirmation dialog"
+  (click)="onOverlayInteraction($event)"
+  (keydown.enter)="confirmDialog.cancel()"
+  (keydown.space)="confirmDialog.cancel(); $event.preventDefault()"
+>
+  <section
+    class="tg-confirm-dialog"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="'confirm-dialog-title'"
+  >
+    <h2 id="confirm-dialog-title" class="tg-confirm-title">{{ dialog.title }}</h2>
+    <p class="tg-confirm-message">{{ dialog.message }}</p>
+
+    <div class="tg-confirm-actions">
+      <button
+        type="button"
+        class="tg-confirm-cancel"
+        (click)="confirmDialog.cancel()"
+      >
+        {{ dialog.cancelLabel }}
+      </button>
+      <button
+        type="button"
+        [class.tg-confirm-danger]="dialog.variant === 'danger'"
+        class="tg-confirm-accept"
+        (click)="confirmDialog.confirm()"
+      >
+        {{ dialog.confirmLabel }}
+      </button>
+    </div>
+  </section>
+</div>
+}

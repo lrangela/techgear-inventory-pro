@@ -1,0 +1,16 @@
+<div class="tg-min-h-screen tg-bg-slate-100/70">
+  @if (isAuthenticated()) {
+  <lib-header
+    [isAuthenticated]="isAuthenticated()"
+    [user]="currentUser()"
+    [userInitials]="userInitials()"
+    [cartCount]="cartCount()"
+    (logout)="logout()"
+  />
+  }
+
+  <main class="tg-mx-auto tg-w-full tg-max-w-[1400px]">
+    <router-outlet />
+  </main>
+</div>
+

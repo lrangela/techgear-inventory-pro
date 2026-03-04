@@ -1,20 +1,13 @@
-import { TestBed } from '@angular/core/testing';
 import { App } from './app';
-import { NxWelcome } from './nx-welcome';
+import { describe, expect, it } from 'vitest';
 
-describe('App', () => {
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [App, NxWelcome],
-    }).compileComponents();
+describe('ShopWeb App Shell', () => {
+  it('should expose the app class', () => {
+    expect(App).toBeDefined();
   });
 
-  it('should render title', async () => {
-    const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain(
-      'Welcome shop-web',
-    );
+  it('should instantiate the app class', () => {
+    const instance = new App();
+    expect(instance).toBeTruthy();
   });
 });

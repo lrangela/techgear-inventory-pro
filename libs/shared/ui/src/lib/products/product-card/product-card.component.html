@@ -1,0 +1,35 @@
+<article class="tg-flex tg-h-full tg-flex-col tg-gap-3 tg-rounded-xl tg-border tg-border-slate-200 tg-bg-white tg-p-4 tg-shadow-sm">
+  <div class="tg-h-32 tg-overflow-hidden tg-rounded-md tg-bg-slate-100 sm:tg-h-36">
+    @if (product().images.length > 0) {
+      <img
+        class="tg-h-full tg-w-full tg-object-contain tg-bg-white"
+        [src]="imageUrl()"
+        [alt]="product().title"
+        (error)="onImageError($event)"
+      />
+    } @else {
+      <div class="tg-flex tg-h-full tg-items-center tg-justify-center tg-text-sm tg-text-slate-500">
+        No image
+      </div>
+    }
+  </div>
+
+  <div class="tg-flex tg-flex-1 tg-flex-col tg-gap-2">
+    <p class="tg-text-xs tg-uppercase tg-tracking-wide tg-text-slate-500">
+      {{ product().category?.name ?? 'Uncategorized' }}
+    </p>
+    <h3 class="tg-text-base tg-font-semibold tg-text-slate-900">{{ product().title }}</h3>
+    <p class="tg-line-clamp-2 tg-text-sm tg-text-slate-600">{{ product().description }}</p>
+  </div>
+
+  <div class="tg-flex tg-items-center tg-justify-between">
+    <p class="tg-text-lg tg-font-bold tg-text-slate-900">{{ product().price | currency }}</p>
+    <button
+      type="button"
+      class="tg-rounded-md tg-bg-slate-900 tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-white hover:tg-bg-slate-700"
+      (click)="onView()"
+    >
+      View
+    </button>
+  </div>
+</article>

@@ -44,3 +44,9 @@ Thumbs.db
 .angular
 
 __screenshots__/
+playwright-report/
+test-results/
+
+apps/**/src/environments/environment.local.ts
+graph.html
+static/

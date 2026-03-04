@@ -1,0 +1,86 @@
+<section class="tg-mx-auto tg-w-full tg-max-w-6xl tg-space-y-6 tg-p-6">
+  <button type="button"
+    class="tg-inline-flex tg-items-center tg-gap-2 tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 hover:tg-bg-slate-50"
+    (click)="onBack()">
+    Back to catalog
+  </button>
+
+  @if (isLoading()) {
+  <div class="tg-rounded-lg tg-border tg-border-slate-200 tg-bg-slate-50 tg-p-6 tg-text-sm tg-text-slate-600">
+    Loading product...
+  </div>
+  } @else if (error()) {
+  <div class="tg-rounded-lg tg-border tg-border-rose-200 tg-bg-rose-50 tg-p-4 tg-text-sm tg-text-rose-700">
+    Failed to load this product.
+    <button type="button" class="tg-ml-2 tg-font-semibold hover:tg-underline" (click)="onRetry()">
+      Retry
+    </button>
+  </div>
+  } @else if (!product()) {
+  <div class="tg-rounded-lg tg-border tg-border-slate-200 tg-bg-slate-50 tg-p-6 tg-text-sm tg-text-slate-600">
+    Product not found.
+  </div>
+  } @else {
+  <lib-product-detail-view [product]="product()!" />
+
+  <div class="tg-mt-6 tg-rounded-xl tg-border tg-border-slate-200 tg-bg-white tg-p-6">
+    <div class="tg-flex tg-flex-col tg-gap-4 lg:tg-flex-row lg:tg-items-center lg:tg-justify-between">
+      <div>
+        <p class="tg-text-sm tg-font-medium tg-text-slate-900">Available stock</p>
+        <p class="tg-text-2xl tg-font-bold tg-text-slate-900">{{ stock() }}</p>
+      </div>
+
+      <div class="tg-flex tg-flex-col tg-items-start tg-gap-3 lg:tg-items-end">
+        @if (stock() > 0) {
+        <div class="tg-inline-flex tg-items-center tg-rounded-lg tg-border tg-border-slate-300 tg-bg-white">
+          <button
+            type="button"
+            (click)="decreaseQty()"
+            class="tg-h-10 tg-w-10 tg-text-base tg-font-semibold tg-text-slate-700 hover:tg-bg-slate-100"
+            [disabled]="qty() <= 1"
+          >
+            -
+          </button>
+          <span class="tg-min-w-12 tg-text-center tg-text-sm tg-font-semibold tg-text-slate-900">{{ qty() }}</span>
+          <button
+            type="button"
+            (click)="increaseQty()"
+            class="tg-h-10 tg-w-10 tg-text-base tg-font-semibold tg-text-slate-700 hover:tg-bg-slate-100"
+            [disabled]="qty() >= stock()"
+          >
+            +
+          </button>
+        </div>
+
+        <button
+          type="button"
+          class="tg-rounded-lg tg-px-6 tg-py-3 tg-text-sm tg-font-semibold tg-text-white tg-transition-colors focus:tg-outline-none focus:tg-ring-2 focus:tg-ring-offset-2"
+          [class.tg-bg-emerald-600]="addedQty() > 0"
+          [class.hover:tg-bg-emerald-700]="addedQty() > 0"
+          [class.focus:tg-ring-emerald-500]="addedQty() > 0"
+          [class.tg-bg-indigo-600]="addedQty() === 0"
+          [class.hover:tg-bg-indigo-700]="addedQty() === 0"
+          [class.focus:tg-ring-indigo-500]="addedQty() === 0"
+          [disabled]="!canAdd()"
+          (click)="addToCart()"
+        >
+          {{ addedQty() > 0 ? 'Added ' + addedQty() + ' item(s)' : 'Add to cart' }}
+        </button>
+
+        @if (limitedByStock()) {
+        <p class="tg-text-xs tg-font-medium tg-text-amber-700">Limited by available stock.</p>
+        }
+        } @else {
+        <p class="tg-rounded-md tg-bg-rose-50 tg-px-4 tg-py-2 tg-text-sm tg-font-medium tg-text-rose-700">
+          Product out of stock
+        </p>
+        <button type="button" disabled
+          class="tg-cursor-not-allowed tg-rounded-lg tg-bg-slate-100 tg-px-6 tg-py-3 tg-text-sm tg-font-semibold tg-text-slate-400">
+          Add to cart
+        </button>
+        }
+      </div>
+    </div>
+  </div>
+  }
+</section>

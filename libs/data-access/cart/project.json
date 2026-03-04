@@ -1,0 +1,36 @@
+{
+  "name": "data-access-cart",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/data-access/cart/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["scope:cart", "type:data-access"],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": ["{workspaceRoot}/dist/libs/data-access/cart"],
+      "options": {
+        "project": "libs/data-access/cart/ng-package.json",
+        "tsConfig": "libs/data-access/cart/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/data-access/cart/tsconfig.lib.prod.json"
+        },
+        "development": {
+          "tsConfig": "libs/data-access/cart/tsconfig.lib.json"
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest -c libs/data-access/cart/vitest.config.ts --run"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

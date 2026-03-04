@@ -1,0 +1,36 @@
+{
+  "name": "features-admin-products",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/features/admin-products/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["scope:products", "type:feature"],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": ["{workspaceRoot}/dist/libs/features/admin-products"],
+      "options": {
+        "project": "libs/features/admin-products/ng-package.json",
+        "tsConfig": "libs/features/admin-products/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/features/admin-products/tsconfig.lib.prod.json"
+        },
+        "development": {
+          "tsConfig": "libs/features/admin-products/tsconfig.lib.json"
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest -c libs/features/admin-products/vitest.config.ts --run"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

@@ -1,0 +1,74 @@
+<header class="tg-sticky tg-top-0 tg-z-40 tg-border-b tg-border-slate-200/80 tg-bg-white/85 tg-backdrop-blur-md">
+    <div
+        class="tg-mx-auto tg-flex tg-w-full tg-max-w-[1400px] tg-items-center tg-justify-between tg-gap-4 tg-px-4 tg-py-3 sm:tg-px-6">
+        <!-- Logo & Nav -->
+        <div class="tg-flex tg-items-center tg-gap-3">
+            <a routerLink="/catalog"
+                class="tg-inline-flex tg-items-center tg-gap-2 tg-rounded-lg tg-bg-slate-900 tg-px-3 tg-py-1.5 tg-text-sm tg-font-semibold tg-text-white">
+                <span class="tg-size-2 tg-rounded-full tg-bg-emerald-300"></span>
+                TechGear
+            </a>
+
+            @if (isAuthenticated()) {
+            <nav class="tg-hidden sm:tg-flex">
+                <a routerLink="/catalog" routerLinkActive="tg-text-slate-900 tg-bg-slate-200/80"
+                    class="tg-rounded-md tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-600 hover:tg-bg-slate-200/60 hover:tg-text-slate-900">
+                    Catalog
+                </a>
+            </nav>
+            }
+        </div>
+
+        <!-- Right Side: Cart & User -->
+        <div class="tg-flex tg-items-center tg-gap-3">
+
+            <!-- Cart Link with Badge -->
+            <a routerLink="/cart" routerLinkActive="tg-text-indigo-600 tg-bg-indigo-50"
+                class="tg-group tg-relative tg-inline-flex tg-items-center tg-justify-center tg-rounded-full tg-p-2 tg-text-slate-500 hover:tg-bg-slate-100 hover:tg-text-slate-700"
+                title="View Cart">
+
+                <span class="tg-sr-only">Cart</span>
+
+                <!-- SVG Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" class="tg-h-6 tg-w-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                </svg>
+
+                @if (cartCount() > 0) {
+                <span
+                    class="tg-absolute -tg-right-1 -tg-top-1 tg-flex tg-h-5 tg-min-w-[1.25rem] tg-items-center tg-justify-center tg-rounded-full tg-bg-red-600 tg-px-1.5 tg-text-xs tg-font-bold tg-text-white tg-shadow-sm tg-ring-2 tg-ring-white">
+                    {{ cartCount() }}
+                </span>
+                }
+            </a>
+
+            @if (isAuthenticated() && user()) {
+            <div class="tg-hidden tg-text-right md:tg-block">
+                <p class="tg-text-sm tg-font-semibold tg-leading-none tg-text-slate-900">
+                    {{ user()?.name }}
+                </p>
+                <p class="tg-mt-1 tg-text-xs tg-text-slate-500">
+                    {{ user()?.email || 'Authenticated session' }}
+                </p>
+            </div>
+
+            <div
+                class="tg-flex tg-size-10 tg-items-center tg-justify-center tg-overflow-hidden tg-rounded-full tg-border tg-border-slate-200 tg-bg-slate-100 tg-text-xs tg-font-bold tg-text-slate-700">
+                @if (user()?.avatar) {
+                <img [src]="user()?.avatar" [alt]="user()?.name" class="tg-h-full tg-w-full tg-object-cover" />
+                } @else {
+                <span>{{ userInitials() }}</span>
+                }
+            </div>
+
+            <button type="button"
+                class="tg-inline-flex tg-items-center tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 hover:tg-bg-slate-100"
+                (click)="logout.emit()">
+                Logout
+            </button>
+            }
+        </div>
+    </div>
+</header>

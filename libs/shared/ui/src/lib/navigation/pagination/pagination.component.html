@@ -1,0 +1,19 @@
+<nav class="tg-flex tg-items-center tg-justify-end tg-gap-3">
+  <button
+    type="button"
+    class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm disabled:tg-cursor-not-allowed disabled:tg-opacity-50"
+    [disabled]="disablePrev()"
+    (click)="previous.emit()"
+  >
+    Previous
+  </button>
+  <span class="tg-text-sm tg-font-medium">Page {{ page() }}</span>
+  <button
+    type="button"
+    class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm disabled:tg-cursor-not-allowed disabled:tg-opacity-50"
+    [disabled]="disableNext()"
+    (click)="next.emit()"
+  >
+    Next
+  </button>
+</nav>

@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+# Detectar si existe commit previo
+BASE=$(git rev-parse --verify HEAD~1 2>/dev/null && echo "HEAD~1" || echo "HEAD")
+
+npx nx affected --target=lint --base=$BASE
+npx nx affected --target=test --base=$BASE

@@ -1,0 +1,63 @@
+<section class="tg-space-y-6 tg-p-6">
+  <header class="tg-space-y-1">
+    <h1 class="tg-text-2xl tg-font-semibold tg-text-slate-900">Catalog</h1>
+    <p class="tg-text-sm tg-text-slate-600">Browse products and open product details.</p>
+  </header>
+
+  @if (categoriesError()) {
+  <div class="tg-rounded-lg tg-border tg-border-rose-200 tg-bg-rose-50 tg-p-4 tg-text-sm tg-text-rose-700">
+    Failed to load categories.
+    <button type="button" class="tg-ml-2 tg-font-semibold hover:tg-underline" (click)="onRetryCategories()">
+      Retry
+    </button>
+  </div>
+  } @else {
+  <lib-category-filter [categories]="categories()" [selectedCategoryId]="selectedCategoryId()"
+    (selectedCategoryIdChange)="onCategoryChange($event)" />
+  }
+
+  @if (isProductsLoading()) {
+  <div class="tg-rounded-lg tg-border tg-border-slate-200 tg-bg-slate-50 tg-p-6 tg-text-sm tg-text-slate-600">
+    Loading products...
+  </div>
+  } @else if (productsError()) {
+  <div class="tg-rounded-lg tg-border tg-border-rose-200 tg-bg-rose-50 tg-p-4 tg-text-sm tg-text-rose-700">
+    Failed to load products.
+    <button type="button" class="tg-ml-2 tg-font-semibold hover:tg-underline" (click)="onRetryProducts()">
+      Retry
+    </button>
+  </div>
+  } @else if (isEmpty()) {
+  <div class="tg-rounded-lg tg-border tg-border-slate-200 tg-bg-slate-50 tg-p-6 tg-text-sm tg-text-slate-600">
+    No products found for this page/filter.
+  </div>
+  } @else {
+  @defer (on viewport) {
+  <div class="tg-grid tg-grid-cols-1 tg-gap-4 sm:tg-grid-cols-2 lg:tg-grid-cols-3">
+    @for (product of productsWithStock(); track product.id) {
+    <div class="tg-relative">
+      <lib-product-card [product]="product" (view)="openProduct($event)" />
+      @if (product.stock > 0) {
+      <span
+        class="tg-absolute tg-top-2 tg-right-2 tg-rounded-full tg-bg-green-100 tg-px-2.5 tg-py-0.5 tg-text-xs tg-font-medium tg-text-green-800">
+        {{ product.stock }} left
+      </span>
+      } @else {
+      <span
+        class="tg-absolute tg-top-2 tg-right-2 tg-rounded-full tg-bg-rose-100 tg-px-2.5 tg-py-0.5 tg-text-xs tg-font-medium tg-text-rose-800">
+        Out of stock
+      </span>
+      }
+    </div>
+    }
+  </div>
+  } @placeholder {
+  <div class="tg-rounded-lg tg-border tg-border-slate-200 tg-bg-slate-50 tg-p-6 tg-text-sm tg-text-slate-600">
+    Loading products grid...
+  </div>
+  }
+  }
+
+  <lib-pagination [page]="page()" [disablePrev]="!canGoPrev()" [disableNext]="!canGoNext()" (previous)="onPrevPage()"
+    (next)="onNextPage()" />
+</section>

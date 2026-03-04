@@ -1,0 +1,36 @@
+<article class="tg-grid tg-gap-8 lg:tg-grid-cols-[1.15fr_1fr]">
+  <div class="tg-space-y-4">
+    <div class="tg-overflow-hidden tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white">
+      <img
+        class="tg-aspect-square tg-w-full tg-object-cover"
+        [src]="mainImageUrl()"
+        [alt]="product().title"
+      />
+    </div>
+
+    @if (galleryImageUrls().length > 1) {
+    <div class="tg-grid tg-grid-cols-5 tg-gap-2">
+      @for (image of galleryImageUrls(); track image; let index = $index) {
+      <button
+        type="button"
+        (click)="selectImage(index)"
+        class="tg-overflow-hidden tg-rounded-lg tg-border tg-bg-white"
+        [class.tg-border-indigo-500]="mainImageUrl() === image"
+        [class.tg-border-slate-200]="mainImageUrl() !== image"
+      >
+        <img class="tg-aspect-square tg-w-full tg-object-cover" [src]="image" [alt]="product().title + ' thumbnail'" />
+      </button>
+      }
+    </div>
+    }
+  </div>
+
+  <div class="tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-6">
+    <p class="tg-text-xs tg-font-semibold tg-uppercase tg-tracking-wide tg-text-indigo-600">
+      {{ product().category?.name ?? 'Uncategorized' }}
+    </p>
+    <h2 class="tg-mt-2 tg-text-3xl tg-font-bold tg-leading-tight tg-text-slate-900">{{ product().title }}</h2>
+    <p class="tg-mt-4 tg-text-4xl tg-font-black tg-text-slate-900">{{ product().price | currency }}</p>
+    <p class="tg-mt-6 tg-whitespace-pre-line tg-text-sm tg-leading-7 tg-text-slate-700">{{ product().description }}</p>
+  </div>
+</article>

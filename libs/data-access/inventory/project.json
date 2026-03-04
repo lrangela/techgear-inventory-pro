@@ -1,0 +1,36 @@
+{
+  "name": "data-access-inventory",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/data-access/inventory/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["scope:inventory", "type:data-access"],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": ["{workspaceRoot}/dist/libs/data-access/inventory"],
+      "options": {
+        "project": "libs/data-access/inventory/ng-package.json",
+        "tsConfig": "libs/data-access/inventory/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/data-access/inventory/tsconfig.lib.prod.json"
+        },
+        "development": {
+          "tsConfig": "libs/data-access/inventory/tsconfig.lib.json"
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest -c libs/data-access/inventory/vitest.config.ts --run"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

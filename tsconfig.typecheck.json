@@ -1,0 +1,20 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./apps/shop-web/tsconfig.app.json" },
+    { "path": "./apps/admin-panel/tsconfig.app.json" },
+    { "path": "./libs/data-access/auth/tsconfig.lib.json" },
+    { "path": "./libs/data-access/cart/tsconfig.lib.json" },
+    { "path": "./libs/data-access/categories/tsconfig.lib.json" },
+    { "path": "./libs/data-access/inventory/tsconfig.lib.json" },
+    { "path": "./libs/data-access/products/tsconfig.lib.json" },
+    { "path": "./libs/features/admin-inventory/tsconfig.lib.json" },
+    { "path": "./libs/features/admin-products/tsconfig.lib.json" },
+    { "path": "./libs/features/auth/tsconfig.lib.json" },
+    { "path": "./libs/features/cart/tsconfig.lib.json" },
+    { "path": "./libs/features/catalog/tsconfig.lib.json" },
+    { "path": "./libs/features/product-detail/tsconfig.lib.json" },
+    { "path": "./libs/shared/ui/tsconfig.lib.json" },
+    { "path": "./libs/shared/util/tsconfig.lib.json" }
+  ]
+}
