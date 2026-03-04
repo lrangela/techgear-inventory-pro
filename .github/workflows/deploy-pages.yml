@@ -14,6 +14,9 @@ concurrency:
   group: pages-${{ github.workflow }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: '20'
+
 jobs:
   deploy:
     if: >-
@@ -32,14 +35,23 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      # Reutiliza el dist ya generado por el job build del CI
-      - name: Download dist artifact
-        uses: actions/download-artifact@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: dist-workspace
-          path: dist
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build apps for Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          npx nx build shop-web --configuration=production --base-href="/${REPO_NAME}/"
+          npx nx build admin-panel --configuration=production --base-href="/${REPO_NAME}/admin/"
 
       - name: Assemble Pages site
         shell: bash
