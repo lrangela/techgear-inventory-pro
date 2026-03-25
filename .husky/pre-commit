@@ -1,7 +1,9 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-# Detectar si existe commit previo
-BASE=$(git rev-parse --verify HEAD~1 2>/dev/null && echo "HEAD~1" || echo "HEAD")
+# Detectar si existe commit previo sin contaminar la variable con la salida del hash
+if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+  BASE="HEAD~1"
+else
+  BASE="HEAD"
+fi
 
-npx nx affected --target=lint --base=$BASE
-npx nx affected --target=test --base=$BASE
+node ./tools/run-nx-with-node-options.cjs affected --target=lint --base="$BASE"
+node ./tools/run-nx-with-node-options.cjs affected --target=test --base="$BASE"
