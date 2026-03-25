@@ -103,7 +103,7 @@
 
     <div class="tg-overflow-hidden tg-rounded-xl tg-border tg-border-slate-200 tg-bg-slate-50">
       <img
-        [src]="form.value.images || 'https://placehold.co/900x360/e2e8f0/475569?text=Preview'"
+        [src]="getPreviewImageUrl()"
         alt="Preview"
         class="tg-h-52 tg-w-full tg-object-cover"
       />

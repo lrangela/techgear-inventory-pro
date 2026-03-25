@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { describe, expect, it, vi } from 'vitest';
 import { CategoriesStore } from '@techgear/data-access/categories';
+import { CartInventoryFacade } from '@techgear/data-access-cart';
 import { InventoryStore } from '@techgear/data-access/inventory';
 import { ProductsStore } from '@techgear/data-access/products';
 import { AppErrorState } from '@techgear/util';
@@ -17,6 +18,7 @@ describe('CatalogPageComponent', () => {
     const report = vi.fn();
     const seedMissingProducts = vi.fn();
     const getStock = vi.fn().mockReturnValue(7);
+    const addToCart = vi.fn().mockReturnValue(true);
 
     const products = signal([
       {
@@ -55,10 +57,17 @@ describe('CatalogPageComponent', () => {
           provide: ProductsStore,
           useValue: {
             items: products,
+            total: signal(24),
             listStatus: signal<'resolved'>('resolved'),
             listError: signal<null>(null),
             loadList: loadProducts,
             reloadList: reloadProducts,
+          },
+        },
+        {
+          provide: CartInventoryFacade,
+          useValue: {
+            addToCart,
           },
         },
         {
@@ -76,21 +85,32 @@ describe('CatalogPageComponent', () => {
     TestBed.flushEffects();
 
     expect(loadCategories).toHaveBeenCalled();
-    expect(loadProducts).toHaveBeenCalledWith({ limit: 12, offset: 0 });
+    expect(loadProducts).toHaveBeenCalledWith({ limit: 12, offset: 0, categoryId: null });
     expect(seedMissingProducts).toHaveBeenCalledWith(products(), 5);
     expect(component.filteredProducts()).toHaveLength(2);
 
     component.page.set(3);
     component.onCategoryChange('audio');
+    TestBed.flushEffects();
 
     expect(component.page()).toBe(1);
-    expect(component.filteredProducts()).toEqual([products()[0]]);
+    expect(loadProducts).toHaveBeenLastCalledWith({
+      limit: 12,
+      offset: 0,
+      categoryId: 'audio',
+    });
+    expect(component.filteredProducts()).toEqual(products());
     expect(component.productsWithStock()[0].stock).toBe(7);
 
     component.pageSize.set(1);
     component.onNextPage();
     TestBed.flushEffects();
     expect(component.page()).toBe(2);
+    expect(loadProducts).toHaveBeenLastCalledWith({
+      limit: 1,
+      offset: 1,
+      categoryId: 'audio',
+    });
 
     component.onPrevPage();
     TestBed.flushEffects();
@@ -98,6 +118,15 @@ describe('CatalogPageComponent', () => {
 
     component.onRetryProducts();
     expect(reloadProducts).toHaveBeenCalled();
+
+    component.addProductToCart(1);
+    expect(addToCart).toHaveBeenCalledWith({
+      productId: 1,
+      title: 'Wireless Headphones',
+      price: 199,
+      imageUrl: undefined,
+    });
+    expect(component.addToCartFeedback()).toBe('Wireless Headphones added to cart.');
 
     component.openProduct(2);
     expect(navigate).toHaveBeenCalledWith(['/products', 2]);

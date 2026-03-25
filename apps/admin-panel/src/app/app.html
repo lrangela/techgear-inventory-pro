@@ -12,6 +12,7 @@
       </div>
 
       <div class="tg-flex tg-items-center tg-gap-4">
+        @if (isAuthenticated()) {
         <nav class="tg-flex tg-items-center tg-gap-2">
           <a
             routerLink="/products"
@@ -26,8 +27,6 @@
             >Inventory</a
           >
         </nav>
-
-        @if (isAuthenticated()) {
         <div class="tg-hidden tg-text-right md:tg-block">
           <p class="tg-text-sm tg-font-semibold tg-leading-none tg-text-slate-900">
             {{ currentUser()?.name || 'Admin session' }}

@@ -5,12 +5,15 @@ import {
   effect,
   inject,
   OnInit,
+  signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ProductsStore } from '@techgear/data-access/products';
+import { CategoriesStore } from '@techgear/data-access/categories';
+import { isSafeProductImageUrl, ProductsStore } from '@techgear/data-access/products';
 import { Product, ProductCreateRequest } from '@techgear/data-access/products';
 import { ConfirmDialogService } from '@techgear/ui';
+import { PendingChangesComponent } from '@techgear/util';
 
 @Component({
   selector: 'lib-product-edit',
@@ -18,35 +21,16 @@ import { ConfirmDialogService } from '@techgear/ui';
   templateUrl: './product-edit.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProductEditComponent implements OnInit {
+export class ProductEditComponent implements OnInit, PendingChangesComponent {
+  private readonly fallbackPreviewUrl = 'https://placehold.co/900x360/e2e8f0/475569?text=Preview';
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly categoriesStore = inject(CategoriesStore);
   private readonly productsStore = inject(ProductsStore);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
-  readonly categories = computed(() => {
-    const map = new Map<string, string>();
-
-    for (const product of this.productsStore.items()) {
-      const id =
-        typeof product.category === 'string'
-          ? product.category
-          : product.category?.id ?? product.categoryId;
-      const name =
-        typeof product.category === 'string'
-          ? product.category
-          : product.category?.name ?? product.categoryId;
-
-      if (id && name) {
-        map.set(id, name);
-      }
-    }
-
-    return Array.from(map.entries())
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  });
+  readonly categories = this.categoriesStore.items;
   readonly selectedStatus = this.productsStore.selectedStatus;
   readonly selectedError = this.productsStore.selectedError;
   readonly mutationStatus = this.productsStore.mutationStatus;
@@ -69,11 +53,15 @@ export class ProductEditComponent implements OnInit {
     price: [0, [Validators.required, Validators.min(0)]],
     description: ['', Validators.required],
     categoryId: ['', Validators.required],
-    images: ['https://placehold.co/600x400', Validators.required],
+    images: [
+      'https://placehold.co/600x400',
+      [Validators.required, Validators.maxLength(2048), Validators.pattern(/^https?:\/\/\S+$/i)],
+    ],
   });
 
   ngOnInit(): void {
     this.productsStore.ensureListLoaded({ limit: 100, offset: 0 });
+    this.categoriesStore.loadList();
 
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
@@ -112,10 +100,12 @@ export class ProductEditComponent implements OnInit {
           : product.category?.id ?? product.categoryId ?? '',
       images: product.images[0],
     });
+    this.form.markAsPristine();
   }
 
   async onSubmit(): Promise<void> {
     if (this.form.invalid) {
+      this.form.markAllAsTouched();
       return;
     }
 
@@ -130,11 +120,22 @@ export class ProductEditComponent implements OnInit {
       } else if (this.currentProductId) {
         await this.productsStore.updateOptimistic(this.currentProductId, payload);
       }
-    } catch {
+      this.form.markAsPristine();
+      void this.router.navigate(['/products']);
+    } catch (error: any) {
+      if (error?.status === 400 || error?.status === 422) {
+        const validationErrors = error?.error?.errors;
+        if (validationErrors && typeof validationErrors === 'object') {
+          Object.keys(validationErrors).forEach((key) => {
+            const control = this.form.get(key);
+            if (control) {
+              control.setErrors({ serverError: validationErrors[key] });
+            }
+          });
+        }
+      }
       return;
     }
-
-    void this.router.navigate(['/products']);
   }
 
   async onDelete(): Promise<void> {
@@ -157,11 +158,24 @@ export class ProductEditComponent implements OnInit {
 
     try {
       await this.productsStore.deleteOptimistic(this.currentProductId);
+      void this.router.navigate(['/products']);
     } catch {
       return;
     }
+  }
 
-    void this.router.navigate(['/products']);
+  async canDeactivate(): Promise<boolean> {
+    if (this.isSubmitting() || !this.form.dirty) {
+      return true;
+    }
+
+    return this.confirmDialog.open({
+      title: 'Discard unsaved changes',
+      message: 'You have unsaved changes in this form. Leave without saving?',
+      confirmLabel: 'Leave',
+      cancelLabel: 'Stay',
+      variant: 'danger',
+    });
   }
 
   private toPayload(): ProductCreateRequest | null {
@@ -183,5 +197,10 @@ export class ProductEditComponent implements OnInit {
       category,
       images: image ? [image] : undefined,
     };
+  }
+
+  getPreviewImageUrl(): string {
+    const image = this.form.controls.images.value;
+    return isSafeProductImageUrl(image) ? image : this.fallbackPreviewUrl;
   }
 }

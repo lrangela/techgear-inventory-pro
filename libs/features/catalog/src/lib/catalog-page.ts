@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { CategoriesStore } from '@techgear/data-access/categories';
+import { CartInventoryFacade } from '@techgear/data-access-cart';
 import { ProductsStore } from '@techgear/data-access/products';
 import { InventoryStore } from '@techgear/data-access/inventory';
 import { AppErrorState } from '@techgear/util';
@@ -24,15 +25,18 @@ export class CatalogPageComponent {
   private readonly router = inject(Router);
   private readonly productsStore = inject(ProductsStore);
   private readonly categoriesStore = inject(CategoriesStore);
+  private readonly cartFacade = inject(CartInventoryFacade);
   private readonly inventoryStore = inject(InventoryStore);
   private readonly appErrorState = inject(AppErrorState);
 
   readonly page = signal(1);
   readonly pageSize = signal(12);
   readonly selectedCategoryId = signal<string | null>(null);
+  readonly addToCartFeedback = signal<string | null>(null);
 
   readonly categories = this.categoriesStore.items;
   readonly products = this.productsStore.items;
+  readonly totalProducts = this.productsStore.total;
 
   readonly categoriesError = computed(() => this.categoriesStore.error());
   readonly isCategoriesLoading = computed(
@@ -47,17 +51,7 @@ export class CatalogPageComponent {
   );
 
   readonly filteredProducts = computed(() => {
-    const selected = this.selectedCategoryId();
-    const items = this.productsStore.items();
-
-    if (selected === null) {
-      return items;
-    }
-
-    return items.filter((product) => {
-      const categoryId = product.category?.id ?? product.categoryId ?? null;
-      return categoryId === selected;
-    });
+    return this.productsStore.items();
   });
 
   readonly productsWithStock = computed(() => {
@@ -76,7 +70,7 @@ export class CatalogPageComponent {
 
   readonly canGoPrev = computed(() => this.page() > 1);
   readonly canGoNext = computed(
-    () => this.products().length >= this.pageSize() && !this.isProductsLoading()
+    () => this.page() * this.pageSize() < this.totalProducts() && !this.isProductsLoading()
   );
 
   constructor() {
@@ -85,7 +79,11 @@ export class CatalogPageComponent {
       const page = this.page();
       const limit = this.pageSize();
       const offset = (page - 1) * limit;
-      this.productsStore.loadList({ limit, offset });
+      this.productsStore.loadList({
+        limit,
+        offset,
+        categoryId: this.selectedCategoryId(),
+      });
     });
 
     effect(() => {
@@ -137,6 +135,27 @@ export class CatalogPageComponent {
 
   onRetryCategories(): void {
     this.categoriesStore.loadList();
+  }
+
+  addProductToCart(productId: number): void {
+    const product = this.productsWithStock().find((item) => item.id === productId);
+    if (!product) {
+      return;
+    }
+
+    const result = this.cartFacade.addToCart({
+      productId: product.id,
+      title: product.title,
+      price: product.price,
+      imageUrl: product.images[0],
+    });
+
+    if (!result) {
+      this.addToCartFeedback.set(`${product.title} is out of stock.`);
+      return;
+    }
+
+    this.addToCartFeedback.set(`${product.title} added to cart.`);
   }
 
   openProduct(productId: number): void {

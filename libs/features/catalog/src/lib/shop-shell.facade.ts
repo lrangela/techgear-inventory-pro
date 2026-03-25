@@ -13,15 +13,7 @@ export class ShopShellFacade {
   private readonly cartStore = inject(CartStore);
   private readonly router = inject(Router);
 
-  private initialized = false;
-
   constructor() {
-    effect(() => {
-      if (this.authStore.isAuthenticated()) {
-        this.init();
-      }
-    });
-
     effect(() => {
       const products = this.productsStore.items();
       const isLoading = this.productsStore.isLoading();
@@ -33,12 +25,7 @@ export class ShopShellFacade {
   }
 
   init(): void {
-    if (this.initialized || !this.authStore.isAuthenticated()) {
-      return;
-    }
-
-    this.initialized = true;
-    this.productsStore.loadList({ limit: 50, offset: 0 });
+    // Kept as a stable no-op hook for app initializers/exported API compatibility.
   }
 
   readonly isAuthenticated = computed(() => this.authStore.isAuthenticated());

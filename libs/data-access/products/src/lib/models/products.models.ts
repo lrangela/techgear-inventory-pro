@@ -3,6 +3,14 @@ import { ProductDto } from '../contracts/products.contracts';
 export type ProductsListParams = {
   limit?: number;
   offset?: number;
+  categoryId?: string | null;
+};
+
+export type ProductsListResult = {
+  items: Product[];
+  total: number;
+  skip: number;
+  limit: number;
 };
 
 export type ProductCategory = {
@@ -31,6 +39,26 @@ export type ProductCreateRequest = {
 
 export type ProductUpdateRequest = Partial<ProductCreateRequest>;
 
+const MAX_PRODUCT_IMAGE_URL_LENGTH = 2048;
+
+export function isSafeProductImageUrl(value: unknown): value is string {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > MAX_PRODUCT_IMAGE_URL_LENGTH) {
+    return false;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function humanizeSlug(value: string): string {
   return value
     .split('-')
@@ -57,10 +85,10 @@ export function mapCategoryFromSlug(slug: string | undefined): ProductCategory |
 
 function normalizeImages(dto: ProductDto): string[] {
   const images = Array.isArray(dto.images)
-    ? dto.images.filter((image) => typeof image === 'string' && image.length > 0)
+    ? dto.images.filter((image) => isSafeProductImageUrl(image))
     : [];
 
-  if (dto.thumbnail && !images.includes(dto.thumbnail)) {
+  if (isSafeProductImageUrl(dto.thumbnail) && !images.includes(dto.thumbnail)) {
     return [dto.thumbnail, ...images];
   }
 
@@ -94,7 +122,7 @@ export function createProductFromRequest(
     title: payload.title,
     price: payload.price,
     description: payload.description,
-    images: payload.images?.filter(Boolean) ?? [],
+    images: payload.images?.filter((image) => isSafeProductImageUrl(image)) ?? [],
     category: mapCategory(payload.category),
     categoryId: payload.category ?? null,
   };
@@ -109,7 +137,7 @@ export function applyProductUpdate(
     title: patch.title ?? current.title,
     price: patch.price ?? current.price,
     description: patch.description ?? current.description,
-    images: patch.images?.filter(Boolean) ?? current.images,
+    images: patch.images?.filter((image) => isSafeProductImageUrl(image)) ?? current.images,
     category: patch.category !== undefined ? mapCategory(patch.category) : current.category,
     categoryId: patch.category ?? current.categoryId,
   };

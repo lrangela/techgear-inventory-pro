@@ -3,9 +3,11 @@ import {
   Component,
   computed,
   inject,
+  signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthStore, LOGIN_PAGE_CONFIG } from '@techgear/data-access/auth';
+import { firstValueFrom } from 'rxjs';
+import { AuthApiService, AuthStore, LOGIN_PAGE_CONFIG } from '@techgear/data-access/auth';
 import { LoginCredentials, LoginFormComponent } from '@techgear/ui';
 
 @Component({
@@ -16,21 +18,48 @@ import { LoginCredentials, LoginFormComponent } from '@techgear/ui';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginPageComponent {
+  private readonly authApi = inject(AuthApiService);
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly config = inject(LOGIN_PAGE_CONFIG);
+  private readonly remoteAccountSignal = signal<{
+    email: string;
+    username: string;
+    password: string;
+    role?: string | null;
+    source: 'mock' | 'remote';
+  } | null>(null);
 
   readonly isLoading = computed(() => this.authStore.status() === 'loading');
   readonly title = this.config.appTitle;
   readonly subtitle = this.config.subtitle;
-  readonly demoAccount = this.config.demoAccount;
-  readonly demoCredentials: LoginCredentials | null = this.demoAccount
-    ? {
-        username: this.demoAccount.username,
-        password: this.demoAccount.password,
-      }
-    : null;
+  readonly accountHint = computed(() => this.remoteAccountSignal() ?? this.config.accountHint);
+  readonly accountHintTitle = computed(() =>
+    this.accountHint()?.source === 'remote' ? 'API Sample Account' : 'Demo Credentials'
+  );
+  readonly accountHintMessage = computed(() =>
+    this.accountHint()?.source === 'remote'
+      ? 'This sample account is fetched from DummyJSON. The username is shown below and the password is prefilled in the form so you can test the remote login flow without exposing it in the UI.'
+      : 'Use the sample account below to access the public demo build.'
+  );
+  readonly demoCredentials = computed<LoginCredentials | null>(() => {
+    const account = this.accountHint();
+    return account
+      ? {
+          username: account.username,
+          password: account.password,
+        }
+      : null;
+  });
+  readonly accessNotice = computed(() => {
+    const reason = this.route.snapshot.queryParamMap.get('reason');
+    if (reason === 'role') {
+      return 'Your account is authenticated, but it is not authorized for this area.';
+    }
+
+    return null;
+  });
 
   readonly errorMessage = computed(() => {
     if (this.authStore.status() !== 'error') {
@@ -38,6 +67,13 @@ export class LoginPageComponent {
     }
     return 'Unable to sign in. Check your credentials or network and try again.';
   });
+
+  constructor() {
+    const remoteAccountPath = this.config.remoteAccountPath;
+    if (remoteAccountPath) {
+      void this.loadRemoteAccount(remoteAccountPath);
+    }
+  }
 
   async onSubmit(credentials: LoginCredentials): Promise<void> {
     try {
@@ -50,6 +86,15 @@ export class LoginPageComponent {
       await this.router.navigateByUrl(target);
     } catch {
       // Store keeps the internal error details; UI shows a safe message.
+    }
+  }
+
+  private async loadRemoteAccount(path: string): Promise<void> {
+    try {
+      const account = await firstValueFrom(this.authApi.sampleAccount(path));
+      this.remoteAccountSignal.set(account);
+    } catch {
+      this.remoteAccountSignal.set(null);
     }
   }
 }

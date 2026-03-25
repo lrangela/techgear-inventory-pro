@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { InventoryStore } from '@techgear/data-access-inventory';
+import { ProductsStore } from '@techgear/data-access/products';
 import { InventoryDashboardComponent } from './inventory-dashboard.component';
 
 describe('InventoryDashboardComponent logic', () => {
@@ -21,7 +22,17 @@ describe('InventoryDashboardComponent logic', () => {
     };
 
     TestBed.configureTestingModule({
-      providers: [{ provide: InventoryStore, useValue: inventoryStore }],
+      providers: [
+        { provide: InventoryStore, useValue: inventoryStore },
+        {
+          provide: ProductsStore,
+          useValue: {
+            items: () => [{ id: 10, title: 'Keyboard' }],
+            ensureListLoaded: vi.fn(),
+            listStatus: () => 'resolved',
+          },
+        },
+      ],
     });
 
     const component = TestBed.runInInjectionContext(
@@ -30,7 +41,6 @@ describe('InventoryDashboardComponent logic', () => {
 
     component.ngOnInit();
     component.movementForm.patchValue({
-      productMode: 'existing',
       selectedProductId: 10,
       movementType: 'out',
       quantity: 5,
@@ -60,7 +70,17 @@ describe('InventoryDashboardComponent logic', () => {
     };
 
     TestBed.configureTestingModule({
-      providers: [{ provide: InventoryStore, useValue: inventoryStore }],
+      providers: [
+        { provide: InventoryStore, useValue: inventoryStore },
+        {
+          provide: ProductsStore,
+          useValue: {
+            items: () => [{ id: 10, title: 'Keyboard' }],
+            ensureListLoaded: vi.fn(),
+            listStatus: () => 'resolved',
+          },
+        },
+      ],
     });
 
     const component = TestBed.runInInjectionContext(
@@ -69,7 +89,6 @@ describe('InventoryDashboardComponent logic', () => {
 
     component.ngOnInit();
     component.movementForm.patchValue({
-      productMode: 'existing',
       selectedProductId: 10,
       movementType: 'out',
       quantity: 3,

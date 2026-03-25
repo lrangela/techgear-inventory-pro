@@ -6,14 +6,18 @@ import { ProductsApiService } from '../api/products.api';
 import {
   applyProductUpdate,
   createProductFromRequest,
+  isSafeProductImageUrl,
   Product,
   ProductCreateRequest,
+  ProductsListResult,
   ProductsListParams,
   ProductUpdateRequest,
 } from '../models/products.models';
 
 export type ProductsMutationStatus = 'idle' | 'pending' | 'error';
 const PRODUCTS_LOCAL_STATE_KEY = 'techgear_products_local_state_v1';
+const MAX_PRODUCTS_LOCAL_STATE_BYTES = 200_000;
+const MAX_PERSISTED_PRODUCTS = 250;
 
 @Injectable({ providedIn: 'root' })
 export class ProductsStore {
@@ -36,11 +40,13 @@ export class ProductsStore {
     });
   }
 
-  private readonly listResource = rxResource<Product[], ProductsListParams | null>({
+  private readonly listResource = rxResource<ProductsListResult, ProductsListParams | null>({
     params: () => this.listParams(),
-    defaultValue: [],
+    defaultValue: { items: [], total: 0, skip: 0, limit: 0 },
     stream: ({ params }) =>
-      params === null ? of([]) : this.api.getProducts(params),
+      params === null
+        ? of({ items: [], total: 0, skip: 0, limit: 0 })
+        : this.api.getProducts(params),
   });
 
   private readonly selectedResource = rxResource<Product | null, number | null>({
@@ -50,7 +56,8 @@ export class ProductsStore {
       params === null ? of(null) : this.api.getProductById(params),
   });
 
-  readonly items = computed(() => this.localItems() ?? this.listResource.value());
+  readonly items = computed(() => this.localItems() ?? this.listResource.value().items);
+  readonly total = computed(() => this.localItems()?.length ?? this.listResource.value().total);
   readonly listStatus = computed(() => this.listResource.status());
   readonly listError = computed(() => this.listResource.error());
   readonly isLoading = this.listResource.isLoading;
@@ -92,7 +99,7 @@ export class ProductsStore {
   ensureListLoaded(params: ProductsListParams): void {
     const currentParams = this.listParams();
     const hasLocalProjection = this.localItems() !== null;
-    const hasResourceData = this.listStatus() === 'resolved' && this.listResource.value().length >= 0;
+    const hasResourceData = this.listStatus() === 'resolved';
 
     if (currentParams && areSameParams(currentParams, params) && (hasLocalProjection || hasResourceData)) {
       return;
@@ -272,10 +279,14 @@ export class ProductsStore {
       const parsed = JSON.parse(raw) as Product[];
       if (Array.isArray(parsed)) {
         this.localItems.set(
-          parsed.map((item) => ({
-            ...item,
-            images: Array.isArray(item.images) ? item.images : [],
-          }))
+          parsed
+            .slice(0, MAX_PERSISTED_PRODUCTS)
+            .map((item) => ({
+              ...item,
+              images: Array.isArray(item.images)
+                ? item.images.filter((image) => isSafeProductImageUrl(image))
+                : [],
+            }))
         );
       }
     } catch {
@@ -293,7 +304,23 @@ export class ProductsStore {
       return;
     }
 
-    localStorage.setItem(PRODUCTS_LOCAL_STATE_KEY, JSON.stringify(items));
+    try {
+      const serialized = JSON.stringify(
+        items.slice(0, MAX_PERSISTED_PRODUCTS).map((item) => ({
+          ...item,
+          images: item.images.filter((image) => isSafeProductImageUrl(image)),
+        }))
+      );
+
+      if (serialized.length > MAX_PRODUCTS_LOCAL_STATE_BYTES) {
+        localStorage.removeItem(PRODUCTS_LOCAL_STATE_KEY);
+        return;
+      }
+
+      localStorage.setItem(PRODUCTS_LOCAL_STATE_KEY, serialized);
+    } catch {
+      localStorage.removeItem(PRODUCTS_LOCAL_STATE_KEY);
+    }
   }
 }
 
@@ -302,5 +329,6 @@ function areSameParams(
   next: ProductsListParams
 ): boolean {
   return (current.limit ?? null) === (next.limit ?? null) &&
-    (current.offset ?? null) === (next.offset ?? null);
+    (current.offset ?? null) === (next.offset ?? null) &&
+    (current.categoryId ?? null) === (next.categoryId ?? null);
 }

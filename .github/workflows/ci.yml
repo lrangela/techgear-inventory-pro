@@ -134,6 +134,40 @@ jobs:
           path: test.log
           if-no-files-found: warn
 
+  security-audit:
+    name: Dependency Risk Audit
+    runs-on: ubuntu-latest
+    needs: [typecheck, install]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Audit production dependencies
+        shell: bash
+        run: |
+          set +e
+          npm audit --omit=dev --audit-level=high | tee audit.log
+          audit_exit=${PIPESTATUS[0]}
+          set -e
+
+          if [[ "$audit_exit" -ne 0 ]]; then
+            echo "::warning::Production dependency audit reported unresolved advisories. This is currently non-blocking while the Angular upstream advisory remains unresolved for the installed line."
+          fi
+
+      - name: Upload audit logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-logs
+          path: audit.log
+          if-no-files-found: warn
+
   # ─── Build (espera lint + test en paralelo) ────────────────────────────────────
   build:
     name: Build
@@ -212,3 +246,13 @@ jobs:
           name: playwright-results
           path: test-results/
           if-no-files-found: warn
+
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint, test, security-audit, build, e2e]
+    steps:
+      - name: Confirm quality gates
+        run: |
+          echo "Typecheck, lint, test, build, and E2E completed successfully."
+          echo "Dependency risk audit completed separately and remains visible via CI warnings/artifacts."

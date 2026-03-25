@@ -1,5 +1,6 @@
-import { inject, Injectable, computed, signal } from '@angular/core';
+import { inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { AuthApiService } from '../api/auth.api';
 import { AuthTokens, AuthUser } from '../models/auth.models';
 import { TOKEN_STORAGE } from '../storage/token.storage';
@@ -11,6 +12,7 @@ export interface AuthState {
   refreshToken: string | null;
   user: AuthUser | null;
   status: AuthStatus;
+  isRefreshing: boolean;
   error: string | null;
 }
 
@@ -19,141 +21,148 @@ const initialState: AuthState = {
   refreshToken: null,
   user: null,
   status: 'idle',
+  isRefreshing: false,
   error: null,
 };
 
-@Injectable({ providedIn: 'root' })
-export class AuthStore {
-  private readonly api = inject(AuthApiService);
-  private readonly storage = inject(TOKEN_STORAGE);
+export const AuthStore = signalStore(
+  { providedIn: 'root' },
+  withState<AuthState>(initialState),
+  withMethods((store, api = inject(AuthApiService), storage = inject(TOKEN_STORAGE)) => {
+    let refreshPromise: Promise<string | null> | null = null;
+    let profilePromise: Promise<AuthUser | null> | null = null;
 
-  private readonly state = signal<AuthState>({ ...initialState });
-  private refreshPromise: Promise<AuthTokens | null> | null = null;
+    const formatError = (error: unknown): string => {
+      if (error instanceof Error) {
+        return error.message;
+      }
+      return 'Auth error';
+    };
 
-  readonly accessToken = computed(() => this.state().accessToken);
-  readonly refreshToken = computed(() => this.state().refreshToken);
-  readonly user = computed(() => this.state().user);
-  readonly status = computed(() => this.state().status);
-  readonly error = computed(() => this.state().error);
-  readonly isAuthenticated = computed(() => !!this.state().accessToken);
+    const applyTokens = (tokens: AuthTokens): void => {
+      storage.setAccess(tokens.accessToken);
+      storage.setRefresh(tokens.refreshToken);
 
-  initFromStorage(): void {
-    const access = this.storage.getAccess();
-    const refresh = this.storage.getRefresh();
-
-    this.state.set({
-      accessToken: access,
-      refreshToken: refresh,
-      user: null,
-      status: access ? 'authenticated' : 'idle',
-      error: null,
-    });
-
-    if (access) {
-      void this.loadProfile().catch(() => {
-        // Stored tokens may belong to a previous API/session. Reset safely on bootstrap.
-        this.logout();
+      patchState(store, {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
       });
-    }
-  }
+    };
 
-  async login(username: string, password: string): Promise<void> {
-    this.state.update((current) => ({
-      ...current,
-      status: 'loading',
-      error: null,
-    }));
+    const logout = (): void => {
+      api.clearSession();
+      storage.clear();
+      patchState(store, { ...initialState });
+    };
 
-    try {
-      const tokens = await firstValueFrom(this.api.login({ username, password }));
-      this.applyTokens(tokens);
-      this.state.update((current) => ({
-        ...current,
-        status: 'authenticated',
-      }));
-      await this.loadProfile();
-    } catch (error) {
-      this.state.update((current) => ({
-        ...current,
-        status: 'error',
-        error: this.formatError(error),
-      }));
-      throw error;
-    }
-  }
-
-  async loadProfile(): Promise<void> {
-    if (!this.state().accessToken) {
-      return;
-    }
-
-    try {
-      const user = await firstValueFrom(this.api.profile());
-      this.state.update((current) => ({
-        ...current,
-        user,
-      }));
-    } catch (error) {
-      this.state.update((current) => ({
-        ...current,
-        status: 'error',
-        error: this.formatError(error),
-      }));
-      throw error;
-    }
-  }
-
-  async refresh(): Promise<string | null> {
-    if (this.refreshPromise) {
-      const tokens = await this.refreshPromise;
-      return tokens?.accessToken ?? null;
-    }
-
-    const refreshToken = this.state().refreshToken ?? this.storage.getRefresh();
-    if (!refreshToken) {
-      this.logout();
-      return null;
-    }
-
-    this.refreshPromise = firstValueFrom(this.api.refresh(refreshToken))
-      .then((tokens) => {
-        this.applyTokens(tokens);
-        return tokens;
-      })
-      .catch(() => {
-        this.logout();
+    const ensureProfileLoaded = async (forceReload = false): Promise<AuthUser | null> => {
+      if (!store.accessToken()) {
         return null;
-      })
-      .finally(() => {
-        this.refreshPromise = null;
-      });
+      }
 
-    const tokens = await this.refreshPromise;
-    return tokens?.accessToken ?? null;
-  }
+      if (!forceReload && store.user()) {
+        return store.user();
+      }
 
-  logout(): void {
-    this.api.clearSession();
-    this.storage.clear();
-    this.state.set({ ...initialState });
-  }
+      if (profilePromise) {
+        return profilePromise;
+      }
 
-  private applyTokens(tokens: AuthTokens): void {
-    this.storage.setAccess(tokens.accessToken);
-    this.storage.setRefresh(tokens.refreshToken);
+      profilePromise = firstValueFrom(api.profile())
+        .then((user) => {
+          patchState(store, {
+            user,
+            status: 'authenticated',
+            error: null,
+          });
+          return user;
+        })
+        .catch((error) => {
+          patchState(store, {
+            status: 'error',
+            error: formatError(error),
+          });
+          throw error;
+        })
+        .finally(() => {
+          profilePromise = null;
+        });
 
-    this.state.update((current) => ({
-      ...current,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-    }));
-  }
+      return profilePromise;
+    };
 
-  private formatError(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
+    return {
+      ensureProfileLoaded,
+      initFromStorage(): void {
+        const access = storage.getAccess();
+        const refresh = storage.getRefresh();
 
-    return 'Auth error';
-  }
-}
+        patchState(store, {
+          accessToken: access,
+          refreshToken: refresh,
+          status: access ? 'authenticated' : 'idle',
+        });
+
+        if (access) {
+          ensureProfileLoaded().catch(() => {
+            logout();
+          });
+        }
+      },
+
+      async login(username: string, password: string): Promise<void> {
+        patchState(store, { status: 'loading', error: null });
+
+        try {
+          const tokens = await firstValueFrom(api.login({ username, password }));
+          applyTokens(tokens);
+          patchState(store, { status: 'authenticated' });
+          await ensureProfileLoaded(true);
+        } catch (error) {
+          patchState(store, {
+            status: 'error',
+            error: formatError(error),
+          });
+          throw error;
+        }
+      },
+
+      async loadProfile(): Promise<void> {
+        await ensureProfileLoaded();
+      },
+
+      async refresh(): Promise<string | null> {
+        if (refreshPromise) {
+          return refreshPromise;
+        }
+
+        const refreshToken = store.refreshToken() ?? storage.getRefresh();
+        if (!refreshToken) {
+          logout();
+          return null;
+        }
+
+        patchState(store, { isRefreshing: true });
+
+        refreshPromise = firstValueFrom(api.refresh(refreshToken))
+          .then((tokens) => {
+            applyTokens(tokens);
+            return tokens.accessToken;
+          })
+          .catch(() => {
+            logout();
+            return null;
+          })
+          .finally(() => {
+            refreshPromise = null;
+            patchState(store, { isRefreshing: false });
+          });
+
+        return refreshPromise;
+      },
+
+      logout,
+      isAuthenticated: () => !!store.accessToken(),
+    };
+  })
+);

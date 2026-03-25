@@ -3,7 +3,7 @@ import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ProductsStore } from '@techgear/data-access/products';
-import { Product } from '@techgear/data-access/products';
+import { isSafeProductImageUrl, Product } from '@techgear/data-access/products';
 import { ConfirmDialogService } from '@techgear/ui';
 
 type CategoryOption = { id: string; name: string };
@@ -98,7 +98,8 @@ export class ProductsListComponent {
   }
 
   getProductImage(product: Product): string {
-    return product.images?.[0] || this.fallbackImage;
+    const image = product.images?.[0];
+    return isSafeProductImageUrl(image) ? image : this.fallbackImage;
   }
 
   onCategoryChange(categoryId: string): void {

@@ -1,5 +1,5 @@
 @if (isVisible()) {
-<div class="tg-border-b" [class]="toneClass()">
+<div class="tg-border-b" [class]="toneClass()" aria-live="polite" role="status">
   <div class="tg-mx-auto tg-flex tg-w-full tg-max-w-[1400px] tg-items-start tg-justify-between tg-gap-3 tg-px-4 tg-py-3 sm:tg-px-6">
     <div class="tg-space-y-1">
       <p class="tg-text-sm tg-font-semibold">{{ error()?.code }}</p>

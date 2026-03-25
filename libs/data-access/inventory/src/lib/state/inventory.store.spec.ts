@@ -50,4 +50,44 @@ describe('InventoryStore', () => {
     ]);
     expect(storageMock.save).toHaveBeenCalledTimes(1);
   });
+
+  it('syncWithCatalog should keep only catalog products and preserve existing stock', () => {
+    const store = runInInjectionContext(injector, () => injector.get(InventoryStore));
+
+    store.adjustStock(7, 'Headphones', 3, 'Seed');
+    store.adjustStock(8, 'Legacy Product', 2, 'Legacy');
+
+    store.syncWithCatalog(
+      [
+        { id: 7, title: 'Headphones Pro' },
+        { id: 9, title: 'Mechanical Keyboard' },
+      ],
+      5
+    );
+
+    expect(store.items()).toEqual([
+      expect.objectContaining({
+        productId: 7,
+        productName: 'Headphones Pro',
+        stock: 3,
+      }),
+      expect.objectContaining({
+        productId: 9,
+        productName: 'Mechanical Keyboard',
+        stock: 5,
+      }),
+    ]);
+  });
+
+  it('adjustStock should keep only the most recent 500 movements', () => {
+    const store = runInInjectionContext(injector, () => injector.get(InventoryStore));
+
+    for (let index = 1; index <= 550; index += 1) {
+      store.adjustStock(7, 'Headphones', 1, `Movement ${index}`);
+    }
+
+    expect(store.movements()).toHaveLength(500);
+    expect(store.movements()[0]?.reason).toBe('Movement 51');
+    expect(store.movements()[499]?.reason).toBe('Movement 550');
+  });
 });

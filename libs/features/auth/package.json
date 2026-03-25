@@ -5,7 +5,8 @@
     "@angular/core": "^21.1.0",
     "@angular/router": "^21.1.0",
     "@techgear/data-access/auth": "*",
-    "@techgear/ui": "*"
+    "@techgear/ui": "*",
+    "rxjs": "^7.8.0"
   },
   "sideEffects": false
 }

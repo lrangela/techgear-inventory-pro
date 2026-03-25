@@ -4,6 +4,7 @@ import { appConfig } from './app.config';
 import { AuthStore } from '@techgear/data-access/auth';
 import { InventoryStore } from '@techgear/data-access/inventory';
 import { CartStorageService, CartStore } from '@techgear/data-access-cart';
+import { AppConfigService } from '@techgear/util';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('shop-web bootstrap cart hydration', () => {
@@ -19,10 +20,25 @@ describe('shop-web bootstrap cart hydration', () => {
 
     await TestBed.configureTestingModule({
       providers: [
-        ...appConfig.providers,
+        ...appConfig.providers.filter((p: any) => p.provide !== AppConfigService),
+        {
+          provide: AppConfigService,
+          useValue: {
+            loadConfig: vi.fn(() => Promise.resolve()),
+            apiBaseUrl: 'http://test-api.com',
+            authMode: 'mock',
+          },
+        },
         {
           provide: AuthStore,
-          useValue: { initFromStorage: vi.fn(), isAuthenticated: () => false },
+          useValue: {
+            initFromStorage: vi.fn(),
+            isAuthenticated: () => false,
+            accessToken: vi.fn(() => null),
+            refreshToken: vi.fn(() => null),
+            user: vi.fn(() => null),
+            status: vi.fn(() => 'idle'),
+          },
         },
         { provide: InventoryStore, useValue: { loadFromStorage: vi.fn() } },
         {

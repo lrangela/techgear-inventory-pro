@@ -3,41 +3,136 @@
 [![CI](https://github.com/lrangela/techgear-inventory-pro/actions/workflows/ci.yml/badge.svg)](https://github.com/lrangela/techgear-inventory-pro/actions/workflows/ci.yml)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-2ea44f?logo=github)](https://lrangela.github.io/techgear-inventory-pro/)
 
-[URL: https://lrangela.github.io/techgear-inventory-pro/](https://lrangela.github.io/techgear-inventory-pro/)
-
-English and Spanish documentation for the current Nx workspace.
-Documentacion en ingles y espanol para el workspace actual de Nx.
+- Repository: [https://github.com/lrangela/techgear-inventory-pro](https://github.com/lrangela/techgear-inventory-pro)
+- Shop URL: [https://lrangela.github.io/techgear-inventory-pro/](https://lrangela.github.io/techgear-inventory-pro/)
+- Admin URL: [https://lrangela.github.io/techgear-inventory-pro/admin/](https://lrangela.github.io/techgear-inventory-pro/admin/)
 
 ## English
 
-### Overview
+### Real Problem
 
-TechGear Inventory Pro is a dual-application Angular workspace built with Nx.
-It contains a customer storefront (`shop-web`) and an internal inventory/admin experience (`admin-panel`) that share domain libraries, validation rules, and UI primitives.
+The project needed to demonstrate a serious Angular frontend architecture for two different business contexts:
 
-Project routes:
+- A customer storefront with catalog, detail, and cart flows.
+- An internal admin area for product and inventory operations.
 
-- Repository: [https://github.com/lrangela/techgear-inventory-pro](https://github.com/lrangela/techgear-inventory-pro)
-- Deployment: [https://lrangela.github.io/techgear-inventory-pro/](https://lrangela.github.io/techgear-inventory-pro/)
+The main constraint is structural: the demo uses a third-party fake API (`DummyJSON`) and deploys to GitHub Pages, so there is no owned backend for secure cookies, real server-side authorization, durable inventory, or payment checkout.
 
-System split and route examples:
+### Solution
 
-- User shopping system (`shop-web`):
-  - Local: `http://localhost:4200/`
-  - Deployed: [https://lrangela.github.io/techgear-inventory-pro/](https://lrangela.github.io/techgear-inventory-pro/)
-- Administrator system (`admin-panel`):
-  - Local: `http://localhost:4201/`
-  - Deployed: [https://lrangela.github.io/techgear-inventory-pro/admin/](https://lrangela.github.io/techgear-inventory-pro/admin/)
+TechGear Inventory Pro is an Nx monorepo with two Angular standalone applications and reusable libraries.
 
-The repository is structured as a frontend architecture demo focused on:
+- `shop-web` focuses on storefront UX.
+- `admin-panel` focuses on controlled backoffice flows.
+- Runtime contracts are validated with `zod`.
+- Auth is split by environment:
+  - `development/local`: remote auth against DummyJSON through `/api` proxy.
+  - `production` on GitHub Pages: mock auth for stable public demo access.
+- In remote mode, each login screen now loads an API-backed sample account from DummyJSON, shows the username, and prefills the password in the form without rendering the raw password in the UI:
+  - `shop-web`: `/users/6` (`oliviaw`)
+  - `admin-panel`: `/users/1` (`emilys`)
+- Tokens no longer persist in `localStorage`; session auth state uses `sessionStorage` fallback to memory.
+- Admin routes now require both authentication and admin role.
+- Inventory is synchronized against the product catalog master list instead of allowing orphan items.
+- Catalog filtering/pagination now uses real API parameters instead of filtering an already paginated page on the client.
+- Checkout is explicitly labeled as a demo-only disabled capability.
 
-- Angular 21 standalone applications.
-- Nx 22 project boundaries and affected pipelines.
-- Signal-first state with `@ngrx/signals` in key domains.
-- Contract validation with `zod` against the DummyJSON demo API.
-- CI/CD automation for lint, test, build, and GitHub Pages deployment.
+### Architecture
 
-### Current Workspace Structure
+```mermaid
+flowchart LR
+  subgraph Apps
+    A["shop-web"] --> F1["features/catalog"]
+    A --> F2["features/product-detail"]
+    A --> F3["features/cart"]
+    B["admin-panel"] --> F4["features/admin-products"]
+    B --> F5["features/admin-inventory"]
+    A --> F0["features/auth"]
+    B --> F0
+  end
+
+  subgraph DataAccess
+    D1["data-access/auth"]
+    D2["data-access/products"]
+    D3["data-access/categories"]
+    D4["data-access/cart"]
+    D5["data-access/inventory"]
+  end
+
+  subgraph Shared
+    S1["shared/ui"]
+    S2["shared/util"]
+  end
+
+  F0 --> D1
+  F1 --> D2
+  F1 --> D3
+  F1 --> D5
+  F2 --> D2
+  F2 --> D4
+  F2 --> D5
+  F3 --> D4
+  F3 --> D5
+  F4 --> D2
+  F4 --> D3
+  F5 --> D2
+  F5 --> D5
+  Apps --> S1
+  Apps --> S2
+  D1 --> X["DummyJSON Auth / Demo Mock"]
+  D2 --> Y["DummyJSON Products"]
+  D3 --> Y
+  D4 --> Z["Browser storage"]
+  D5 --> Z
+```
+
+### Stack
+
+- Angular 21 standalone
+- Nx 22
+- TypeScript 5
+- Signals + `@ngrx/signals`
+- RxJS
+- `zod`
+- Tailwind CSS + SCSS
+- Vitest
+- Playwright
+- GitHub Actions
+- GitHub Pages
+- DummyJSON
+
+### Technical Decisions
+
+- Use apps as composition roots and keep business behavior in libraries.
+- Keep auth/session handling honest for a static demo:
+  - no fake “secure production auth” claim,
+  - session-scoped token persistence only,
+  - explicit mock credentials only in Pages demo mode.
+- Use frontend RBAC only as demo UX control for admin routing; it is not server-enforced security and must not be presented as real authorization.
+- Keep inventory as a local operational projection synchronized from the catalog master list.
+- Prefer API-backed category filtering and pagination over client-only approximations.
+- Keep destructive actions explicit with confirmations and unsaved-changes guards.
+- Add best-effort CSP meta tags for Pages and document that Trusted Types enforcement and frame-ancestors protection require server headers.
+
+### Highlighted Features
+
+- Dual application architecture with shared domain libraries.
+- Role-aware admin routing.
+- Session-based auth storage instead of long-lived `localStorage` tokens.
+- Catalog pagination and category filtering aligned with DummyJSON capabilities.
+- Admin product editor with unsaved changes protection.
+- Inventory dashboard constrained to existing catalog products.
+- Centralized error normalization.
+- CI/CD for typecheck, lint, test, build, E2E, and Pages deploy.
+
+### Current Limitations
+
+- No owned backend means no real server-side authorization, audit trail, payment, or persistent stock truth.
+- GitHub Pages cannot emit the same security headers as a custom backend.
+- DummyJSON mutations are still demo-oriented and not business-grade persistence.
+- Inventory and cart remain browser-scoped demo data.
+
+### Workspace Structure
 
 ```text
 techgear/
@@ -45,7 +140,6 @@ techgear/
 |   |-- shop-web
 |   `-- admin-panel
 |-- libs/
-|   |-- core
 |   |-- data-access/
 |   |   |-- auth
 |   |   |-- cart
@@ -67,42 +161,15 @@ techgear/
 `-- .github/workflows/
 ```
 
-### Architecture Notes
+### Runtime Configuration
 
-- Both apps bootstrap with `provideZonelessChangeDetection()`.
-- Modern Angular APIs are standard: `OnPush`, Signal `input()`/`output()`, and `@defer` blocks for rendering optimization.
-- Routing and environment wiring stay in `apps/*`; reusable behavior lives in `libs/*`.
-- `libs/data-access/*` owns API integration, parsing, storage, and state updates.
-- `libs/features/*` owns feature orchestration and smart UI flows.
-- `libs/shared/*` contains reusable UI and cross-cutting utilities.
-- DummyJSON remains the demo backend, so runtime parsing and defensive error handling are part of the architecture.
+The project uses a **Runtime Configuration** strategy to follow the "Build Once, Deploy Anywhere" principle.
 
-### Tooling Status
+- Configuration is stored in `assets/config.json`.
+- `AppConfigService` loads this file during application startup (`APP_INITIALIZER`).
+- This decouples the build artifact from environment-specific variables like `apiBaseUrl`.
 
-Testing and verification are standardized across the entire workspace.
-
-- All projects use Vitest with project-level `vitest.config.ts`.
-- End-to-end coverage uses Playwright with one root config and one logical project per app.
-- `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` are valid workspace-level checks.
-- `npm run e2e` validates the login and primary navigation flows for `shop-web` and `admin-panel`.
-- CI runs `affected` targets on pull requests and full workspace verification on push/workflow dispatch.
-- No Jest dependencies remain in the workspace.
-- `shop-web` and `admin-panel` both build successfully for production.
-
-### Tech Stack
-
-| Area       | Current choice                    |
-| ---------- | --------------------------------- |
-| Frontend   | Angular 21                        |
-| Workspace  | Nx 22                             |
-| Styling    | SCSS + Tailwind CSS               |
-| State      | Angular signals + `@ngrx/signals` |
-| Validation | `zod`                             |
-| Testing    | Vitest (jsdom)                    |
-| CI/CD      | GitHub Actions                    |
-| Deployment | GitHub Pages                      |
-
-### Local Development
+### How To Run
 
 ```bash
 npm install
@@ -115,160 +182,155 @@ npx nx serve shop-web
 npx nx serve admin-panel
 ```
 
-Environment variants currently used by both apps:
+Environment modes (defined in `assets/config.json`):
 
-- `development`
-- `local`
-- `production`
+- `authMode: 'mock'`: GitHub Pages demo mode with mock auth.
+- `authMode: 'remote'`: Connects to real `apiBaseUrl`.
 
-Local-only environment files such as `environment.local.ts` are intentionally ignored by Git.
-`development` and `local` use `/api` with proxy (`proxy.conf.json`) to avoid browser CORS in local serve.
-`production` (GitHub Pages) uses mock authentication to keep the public demo stable without a backend proxy.
+### Demo Credentials
 
-### Demo Access For GitHub Pages
+Pages demo credentials intentionally exist only for the public static demo:
 
-The published demo intentionally exposes sample accounts so reviewers can access both apps without setup.
-
-- Shop demo account:
-  - Email: `shop.demo@techgear.dev`
+- Shop:
   - Username: `shop-demo`
   - Password: `ShopDemo123!`
-- Admin demo account:
-  - Email: `admin.demo@techgear.dev`
+- Admin:
   - Username: `admin-demo`
   - Password: `AdminDemo123!`
 
-Important: sign-in always uses `username` and `password`. Email is shown as portfolio/demo context.
+In development mode, demo credentials are not rendered by default.
 
-### CI/CD
+### Authorization Boundary
 
-`/.github/workflows/ci.yml`
+- Admin RBAC in this repository is frontend-only and demonstrative.
+- Route guards improve UX and navigation control, but they do not replace backend authorization.
+- Without an owned backend, the project does not provide server-enforced access control.
 
-- Runs on push, pull request, and manual dispatch.
-- Executes workspace typecheck first.
-- Executes `nx affected` for `lint`, `test`, and `build` on pull requests.
-- Executes full `run-many --all` verification on push and manual dispatch.
-- Executes Playwright E2E after build validation.
-- Uploads logs and build artifacts.
+### How To Deploy
 
-`/.github/workflows/deploy-pages.yml`
+- CI runs on push, pull request, and manual dispatch.
+- Pages deploy runs only after successful CI on `master`.
+- The deploy builds:
+  - `shop-web` at `/`
+  - `admin-panel` at `/admin/`
+- **Dynamic Configuration:** You can configure the demo by setting GitHub Repository Variables:
+  - `API_BASE_URL`: The target API URL (default: `https://dummyjson.com`).
+  - `AUTH_MODE`: `mock` or `remote` (default: `mock`).
 
-- Deploys after CI succeeds on `master`.
-- Builds both applications with the correct base href.
-- Publishes a combined Pages site with `/` for `shop-web` and `/admin/` for `admin-panel`.
+### CI/CD Status
 
-### Documentation
+Verification executed on 2026-03-23:
 
-- [Docs index](./docs/README.md)
-- [Architecture Decision Records](./docs/adr/)
+- `npm run typecheck`: passes
+- `npm run lint`: passes
+- `npm run test -- --watch=false`: passes
+- `npm run build`: passes with bundle-budget warnings
+- `npm run e2e`: passes
+- `npm run e2e:remote-auth`: passes
+- `npm audit --omit=dev --audit-level=high`: reports unresolved upstream advisories
+
+Current CI reality:
+
+- The workflow definition is coherent and the Pages deploy condition matches the current default branch (`master`).
+- `deploy-pages.yml` publishes `shop-web` to `/` and `admin-panel` to `/admin/` after successful CI on `master`.
+- The build remains functional, but both apps currently exceed the warning budget:
+  - `shop-web`: `675.92 kB` initial bundle vs `620 kB` warning budget
+  - `admin-panel`: `681.20 kB` initial bundle vs `620 kB` warning budget
+- `security-audit` is now non-blocking and uploads audit logs because Angular advisory `GHSA-g93w-mfhg-p222` still affects the installed Angular 21.1.x line. The risk remains visible in CI, but it no longer blocks functional delivery while upstream remediation is pending.
+- Remote-auth E2E coverage is available via `npm run e2e:remote-auth`, runs against real DummyJSON credentials loaded in `development`, and passed in local verification on 2026-03-23.
+
+### ADRs
+
 - [ADR-0001 Architecture](./docs/adr/ADR-0001-architecture.md)
 - [ADR-0002 Quality And Delivery](./docs/adr/ADR-0002-quality-and-delivery.md)
 - [ADR-0003 Auth Strategy For Static Deploy](./docs/adr/ADR-0003-auth-strategy-static-deploy.md)
-- [Fake backend alternatives](./fake-backend-alternatives.md)
-
-### Known Gaps
-
-- DummyJSON is still a demo backend and not a production-owned API.
-- Mock auth is enabled only for static Pages deployment and is not suitable for real production security.
-- Observability and release governance are still pending.
-- Review of component usage did not reveal orphaned feature/shared components; the remaining minimal root shell components are intentional.
-- E2E still depends on DummyJSON availability for catalog/inventory data because the repo does not own the backend.
 
 ## Espanol
 
-### Resumen
+### Problema real
 
-TechGear Inventory Pro es un workspace de Angular con dos aplicaciones montado sobre Nx.
-Incluye una tienda para cliente (`shop-web`) y una experiencia interna de administracion e inventario (`admin-panel`) que comparten librerias de dominio, validaciones y componentes reutilizables.
+El proyecto debía demostrar una arquitectura frontend Angular seria para dos contextos de negocio:
 
-Rutas del proyecto:
+- Una tienda para cliente con catálogo, detalle y carrito.
+- Un backoffice interno para productos e inventario.
 
-- Repositorio: [https://github.com/lrangela/techgear-inventory-pro](https://github.com/lrangela/techgear-inventory-pro)
-- Despliegue: [https://lrangela.github.io/techgear-inventory-pro/](https://lrangela.github.io/techgear-inventory-pro/)
+La restricción principal es arquitectónica: la demo usa una API fake de terceros (`DummyJSON`) y se despliega en GitHub Pages, por lo que no existe un backend propio para cookies seguras, autorización server-side real, persistencia empresarial de inventario o checkout.
 
-Division de sistemas y ejemplos de rutas:
+### Solución
 
-- Sistema de compra para usuario (`shop-web`):
-  - Local: `http://localhost:4200/`
-  - Desplegado: [https://lrangela.github.io/techgear-inventory-pro/](https://lrangela.github.io/techgear-inventory-pro/)
-- Sistema de administrador (`admin-panel`):
-  - Local: `http://localhost:4201/`
-  - Desplegado: [https://lrangela.github.io/techgear-inventory-pro/admin/](https://lrangela.github.io/techgear-inventory-pro/admin/)
+TechGear Inventory Pro es un monorepo Nx con dos aplicaciones Angular standalone y librerías reutilizables.
 
-El repositorio esta orientado a mostrar una arquitectura frontend con foco en:
+- `shop-web` se concentra en la experiencia storefront.
+- `admin-panel` se concentra en flujos controlados de backoffice.
+- Los contratos runtime se validan con `zod`.
+- La autenticación se separa por ambiente:
+  - `development/local`: auth remota contra DummyJSON por proxy `/api`.
+  - `production` en GitHub Pages: auth mock para una demo pública estable.
+- Los tokens ya no persisten en `localStorage`; la sesión usa `sessionStorage` con fallback en memoria.
+- Las rutas admin exigen autenticación y rol `admin`.
+- El inventario se sincroniza contra el maestro de productos.
+- El catálogo usa paginación y filtro por categoría con capacidades reales de la API.
+- El checkout quedó marcado explícitamente como demo y está deshabilitado.
 
-- Aplicaciones Angular 21 standalone.
-- Limites de proyecto y ejecucion affected con Nx 22.
-- Estado basado en signals con `@ngrx/signals` en dominios clave.
-- Validacion de contratos con `zod` frente a la API demo de DummyJSON.
-- Automatizacion de CI/CD para lint, test, build y despliegue a GitHub Pages.
+### Arquitectura
 
-### Estructura Actual
+El diagrama superior aplica también a la versión en español.
 
-```text
-techgear/
-|-- apps/
-|   |-- shop-web
-|   `-- admin-panel
-|-- libs/
-|   |-- core
-|   |-- data-access/
-|   |   |-- auth
-|   |   |-- cart
-|   |   |-- categories
-|   |   |-- inventory
-|   |   `-- products
-|   |-- features/
-|   |   |-- admin-inventory
-|   |   |-- admin-products
-|   |   |-- auth
-|   |   |-- cart
-|   |   |-- catalog
-|   |   `-- product-detail
-|   `-- shared/
-|       |-- ui
-|       `-- util
-|-- docs/
-|   `-- adr/
-`-- .github/workflows/
-```
+### Stack
 
-### Notas de Arquitectura
+- Angular 21 standalone
+- Nx 22
+- TypeScript 5
+- Signals + `@ngrx/signals`
+- RxJS
+- `zod`
+- Tailwind CSS + SCSS
+- Vitest
+- Playwright
+- GitHub Actions
+- GitHub Pages
+- DummyJSON
 
-- Ambas apps arrancan con `provideZonelessChangeDetection()`.
-- Se utilizan APIs modernas de Angular como estandar: `OnPush`, Signal `input()`/`output()`, y bloques `@defer` para optimizacion de renderizado.
-- El routing y la configuracion de entorno viven en `apps/*`; la logica reutilizable vive en `libs/*`.
-- `libs/data-access/*` concentra integracion API, parseo, almacenamiento y actualizacion de estado.
-- `libs/features/*` concentra la orquestacion funcional y los flujos de UI.
-- `libs/shared/*` agrupa UI reutilizable y utilidades transversales.
-- DummyJSON sigue siendo el backend de demo, por lo que el parseo en runtime y el manejo defensivo de errores forman parte del diseno.
+### Decisiones técnicas
 
-### Estado Actual del Tooling
+- Mantener `apps` como composition roots y la lógica reusable en `libs`.
+- No simular una “seguridad real” inexistente en Pages:
+  - nada de prometer cookies HttpOnly sin backend propio,
+  - sesión persistida solo por pestaña,
+  - credenciales demo visibles únicamente en modo mock público.
+- Aplicar RBAC frontend en admin y documentar que la autorización real sigue dependiendo del backend.
+- Tratar inventario como proyección operativa local del catálogo.
+- Usar filtros/paginación de API en lugar de aproximaciones client-side engañosas.
+- Agregar confirmaciones y protección ante cambios no guardados.
+- Agregar CSP por meta tag como defensa parcial y documentar el límite de Trusted Types en Pages.
 
-Testing y verificacion quedaron estandarizados en todo el workspace.
+### Features destacadas
 
-- Todos los proyectos usan Vitest con `vitest.config.ts` a nivel de proyecto.
-- La cobertura end-to-end usa Playwright con una configuracion raiz y un proyecto logico por app.
-- `npm run typecheck`, `npm run lint`, `npm run test` y `npm run build` sirven como chequeos de workspace completo.
-- `npm run e2e` valida login y navegacion principal en `shop-web` y `admin-panel`.
-- El CI ejecuta `affected` en pull requests y verificacion completa del workspace en push/manual.
-- No quedan dependencias de Jest en el workspace.
-- `shop-web` y `admin-panel` compilan correctamente para produccion.
+- Dos aplicaciones con librerías compartidas.
+- Rutas admin con rol.
+- Sesión basada en `sessionStorage`.
+- Catálogo con filtrado/paginación real.
+- Formulario admin con `canDeactivate`.
+- Inventario ligado al catálogo.
+- Normalización centralizada de errores.
+- CI/CD completo con Pages.
 
-### Stack Tecnologico
+### Límites actuales
 
-| Area       | Eleccion actual                   |
-| ---------- | --------------------------------- |
-| Frontend   | Angular 21                        |
-| Workspace  | Nx 22                             |
-| Estilos    | SCSS + Tailwind CSS               |
-| Estado     | Angular signals + `@ngrx/signals` |
-| Validacion | `zod`                             |
-| Testing    | Vitest (jsdom)                    |
-| CI/CD      | GitHub Actions                    |
-| Despliegue | GitHub Pages                      |
+- Sin backend propio no hay autorización server-side real, auditoría operativa, pagos ni verdad única de stock.
+- GitHub Pages no emite todos los headers de seguridad que un backend propio sí puede controlar.
+- Las mutaciones de DummyJSON siguen siendo de demo.
+- Carrito e inventario siguen siendo datos locales de navegador.
 
-### Desarrollo Local
+### Configuración en Tiempo de Ejecución (Runtime)
+
+El proyecto utiliza una estrategia de **Configuración en Runtime** para seguir el principio "Build Once, Deploy Anywhere".
+
+- La configuración reside en `assets/config.json`.
+- `AppConfigService` carga este archivo durante el arranque (`APP_INITIALIZER`).
+- Esto desacopla el artefacto compilado de variables específicas del entorno como `apiBaseUrl`.
+
+### Cómo correr
 
 ```bash
 npm install
@@ -281,61 +343,46 @@ npx nx serve shop-web
 npx nx serve admin-panel
 ```
 
-Variantes de entorno usadas actualmente por ambas apps:
+Modos de entorno (definidos en `assets/config.json`):
 
-- `development`
-- `local`
-- `production`
+- `authMode: 'mock'`: Modo demo de GitHub Pages con auth simulada.
+- `authMode: 'remote'`: Se conecta a la `apiBaseUrl` real.
 
-Los archivos locales como `environment.local.ts` se ignoran en Git de forma intencional.
-`development` y `local` usan `/api` con proxy (`proxy.conf.json`) para evitar CORS en navegador durante desarrollo.
-`production` (GitHub Pages) usa autenticacion mock para mantener estable la demo publica sin backend proxy.
+### Cómo desplegar
 
-### Acceso Demo Para GitHub Pages
+- CI corre en push, pull request y disparo manual.
+- El deploy a Pages corre solo después de CI exitoso en `master`.
+- Se publica:
+  - `shop-web` en `/`
+  - `admin-panel` en `/admin/`
+- **Configuración Dinámica:** Puedes configurar la demo estableciendo "Variables de Repositorio" en GitHub:
+  - `API_BASE_URL`: La URL de la API destino (por defecto: `https://dummyjson.com`).
+  - `AUTH_MODE`: `mock` o `remote` (por defecto: `mock`).
 
-La demo publicada expone cuentas de ejemplo para que cualquiera pueda entrar a ambas apps sin configuracion previa.
+### Estado actual de CI/CD
 
-- Cuenta demo de tienda:
-  - Email: `shop.demo@techgear.dev`
-  - Username: `shop-demo`
-  - Password: `ShopDemo123!`
-- Cuenta demo de administrador:
-  - Email: `admin.demo@techgear.dev`
-  - Username: `admin-demo`
-  - Password: `AdminDemo123!`
+Validacion ejecutada el 2026-03-23:
 
-Importante: el login siempre usa `username` y `password`. El email se muestra como contexto de demo/portafolio.
+- `npm run typecheck`: pasa
+- `npm run lint`: pasa
+- `npm run test -- --watch=false`: pasa
+- `npm run build`: pasa con warnings de budget
+- `npm run e2e`: pasa
+- `npm run e2e:remote-auth`: pasa
+- `npm audit --omit=dev --audit-level=high`: reporta advisories pendientes
 
-### CI/CD
+Realidad actual del pipeline:
 
-`/.github/workflows/ci.yml`
+- La definicion de CI es coherente y la condicion del deploy a Pages coincide con la rama actual (`master`).
+- `deploy-pages.yml` publica `shop-web` en `/` y `admin-panel` en `/admin/` tras CI exitoso en `master`.
+- El build es funcional, pero ambas apps exceden hoy el warning budget:
+  - `shop-web`: `675.92 kB` iniciales vs `620 kB` de warning
+  - `admin-panel`: `681.20 kB` iniciales vs `620 kB` de warning
+- `security-audit` sigue visible pero ya no bloquea el pipeline por la advisory upstream de Angular `GHSA-g93w-mfhg-p222` en la linea instalada 21.1.x. El riesgo queda expuesto en CI, pero no impide validar el funcionamiento del frontend.
+- La smoke suite de auth remota via `npm run e2e:remote-auth` corre contra DummyJSON real y también quedó validada el 2026-03-23.
 
-- Corre en push, pull request y disparo manual.
-- Ejecuta primero typecheck del workspace.
-- Ejecuta `nx affected` para `lint`, `test` y `build` en pull requests.
-- Ejecuta `run-many --all` para validacion completa en push y disparo manual.
-- Ejecuta E2E con Playwright despues del build.
-- Publica logs y artefactos de build.
+### ADR
 
-`/.github/workflows/deploy-pages.yml`
-
-- Despliega despues de un CI exitoso sobre `master`.
-- Hace build de ambas aplicaciones con el `base-href` correcto.
-- Publica un sitio combinado con `/` para `shop-web` y `/admin/` para `admin-panel`.
-
-### Documentacion
-
-- [Indice de docs](./docs/README.md)
-- [Architecture Decision Records](./docs/adr/)
 - [ADR-0001 Arquitectura](./docs/adr/ADR-0001-architecture.md)
 - [ADR-0002 Calidad y Delivery](./docs/adr/ADR-0002-quality-and-delivery.md)
 - [ADR-0003 Estrategia Auth Para Deploy Estatico](./docs/adr/ADR-0003-auth-strategy-static-deploy.md)
-- [Alternativas de fake backend](./fake-backend-alternatives.md)
-
-### Brechas Actuales
-
-- DummyJSON sigue siendo una API de demo y no un backend propio de produccion.
-- La autenticacion mock se habilita solo para el deploy estatico en Pages y no sirve como seguridad real de produccion.
-- Falta observabilidad y gobierno de release.
-- La revision de uso de componentes no encontro componentes feature/shared huerfanos; los shells raiz minimos que quedan son intencionales.
-- El E2E sigue dependiendo de la disponibilidad de DummyJSON para datos de catalogo/inventario porque el backend no es propio.

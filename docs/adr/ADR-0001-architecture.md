@@ -1,62 +1,66 @@
 # ADR-0001: TechGear Project Architecture
 
 Status: Accepted  
-Date: 2026-03-03
+Date: 2026-03-23
 
 ## Context
 
-TechGear Inventory Pro needs an architecture that can scale across two frontend applications (`shop-web` and `admin-panel`) while keeping business behavior consistent.
+TechGear Inventory Pro must demonstrate a credible enterprise-minded frontend architecture while running under two hard limits:
 
-The project must support:
+- the backend is not owned by the project (`DummyJSON`),
+- the public demo is deployed on GitHub Pages.
 
-- Shared domain rules between customer and admin experiences.
-- Fast iteration in a monorepo with clear module boundaries.
-- Reliable frontend state management with predictable update patterns.
-- Runtime safety for external payloads from a demo backend (`dummyjson.com`).
+The workspace still needs to show:
 
-Because DummyJSON is used as a non-owned backend, the frontend must defend itself with strict contract validation and explicit error handling instead of trusting API responses.
+- storefront and admin separation,
+- reusable Angular libraries,
+- runtime contract validation,
+- role-aware navigation,
+- maintainable state boundaries,
+- a migration path to a real backend later.
 
 ## Decision
 
-The project adopts the following architectural decisions:
+The project adopts these architecture rules:
 
-- Use Nx monorepo as the workspace backbone for project graph, affected execution, and scalable tooling.
-- Use DDD-inspired separation across `apps`, `libs/features`, `libs/data-access`, and `libs/shared`.
-- Use Angular 21 standalone APIs with zoneless and signal-first patterns as the default runtime model.
-- Use apps (`shop-web`, `admin-panel`) as composition roots; keep reusable domain logic in libraries.
-- Keep app-level login configuration tokens in `data-access` so app bootstrapping does not statically depend on lazy-loaded feature libraries.
-- Use optimistic UI updates where user experience benefits from immediate feedback, with API reconciliation afterward.
-- Use `zod` in data-access boundaries to validate and parse external payloads before state mutation.
-- Use `@ngrx/signals` and Angular signals to keep state local, explicit, and test-friendly.
+- Use Nx monorepo structure with `apps`, `libs/features`, `libs/data-access`, and `libs/shared`.
+- Keep Angular 21 standalone + signal-first patterns as the default runtime model.
+- Treat apps as composition roots and libraries as reusable business boundaries.
+- Keep runtime contract parsing with `zod` at data-access boundaries.
+- Keep frontend RBAC in routing strictly as UX control, and explicitly document that it is not server-enforced authorization.
+- Use session-scoped auth persistence (`sessionStorage`, memory fallback) instead of long-lived `localStorage` tokens.
+- Synchronize inventory against the product catalog master list instead of creating inventory-only products.
+- Use API-backed pagination and category filtering in the storefront where DummyJSON supports it.
+- Keep demo-only capabilities explicit, such as disabled checkout and mock auth on Pages.
 
 ## Consequences
 
 Positive:
 
-- Better scalability as modules and teams grow.
-- Stronger testability due to explicit boundaries and deterministic state updates.
-- Improved maintainability through reusable domain libraries and clear ownership.
-- Faster CI via Nx affected execution.
+- Clear separation between storefront and backoffice responsibilities.
+- Better demo credibility: fewer fake enterprise claims and fewer misleading flows.
+- Reduced security risk compared with long-lived browser token persistence.
+- Cleaner business model: inventory depends on catalog, not the other way around.
 
 Negative:
 
-- Higher initial complexity compared with a single-app Angular setup.
-- Additional Nx configuration and governance overhead (tags, boundaries, target conventions).
-- Team onboarding requires understanding monorepo and DDD layering conventions.
-- Shared configuration placement must be deliberate to avoid breaking lazy-loaded boundaries.
+- Real server-side authorization is still impossible without an owned backend.
+- Inventory and cart remain browser-scoped demo data.
+- GitHub Pages cannot enforce the same security headers as a backend-controlled deployment.
+- Some enterprise controls stay documented rather than fully executable in this repository.
 
 ## Alternatives Considered
 
-1. Angular CLI single app (no Nx):
-   - Simpler startup, but weaker scaling and dependency governance for dual-app growth.
-2. Classic NgRx store/effects instead of signals:
-   - Mature ecosystem, but higher boilerplate for this project scope.
-3. Hand-crafted mock backend instead of DummyJSON:
-   - More control, but more maintenance overhead and less realistic payload variability.
+1. Keep localStorage auth tokens:
+   - Rejected due to avoidable XSS/session persistence risk.
+2. Keep client-only category filtering on already paginated results:
+   - Rejected because it produces misleading UX and weak scalability.
+3. Allow inventory to create products outside the catalog:
+   - Rejected because it breaks domain consistency.
 
 ## Future Considerations
 
-- Replace DummyJSON with a real backend and versioned API contracts.
-- Evaluate event-sourcing style audit flows for inventory operations.
-- Assess microfrontend boundaries if team structure or release cadence requires independent deployments.
-- Add observability standards: tracing, metrics, and centralized error intelligence.
+- Replace DummyJSON with an owned NestJS/Prisma backend.
+- Move auth to secure cookies and server-side authorization checks.
+- Add audit trails for inventory changes and operator identity.
+- Add centralized observability and release governance.

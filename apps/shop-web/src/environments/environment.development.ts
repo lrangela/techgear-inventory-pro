@@ -1,4 +1,6 @@
-export const environment = {
+import type { AppEnvironment } from './environment.model';
+
+export const environment: AppEnvironment = {
   apiBaseUrl: '/api',
-  authMode: 'remote' as const,
+  authMode: 'remote',
 };

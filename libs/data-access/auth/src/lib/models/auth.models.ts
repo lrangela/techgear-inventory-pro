@@ -22,6 +22,7 @@ export interface AuthUserDto {
 
 export interface AuthUser {
   id: number;
+  username: string;
   email: string;
   name: string;
   role: string | null;
@@ -31,6 +32,14 @@ export interface AuthUser {
 export interface LoginRequest {
   username: string;
   password: string;
+}
+
+export interface LoginAccountHint {
+  email: string;
+  username: string;
+  password: string;
+  role?: string | null;
+  source: 'mock' | 'remote';
 }
 
 export interface MockAuthAccount {
@@ -53,6 +62,7 @@ export const mapAuthUser = (dto: AuthUserDto): AuthUser => {
 
   return {
     id: dto.id,
+    username: dto.username,
     email: dto.email ?? '',
     name: fullName || dto.username,
     role: dto.role ?? null,

@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { describe, expect, it, vi } from 'vitest';
-import { AuthStore, LOGIN_PAGE_CONFIG } from '@techgear/data-access/auth';
+import { AuthApiService, AuthStore, LOGIN_PAGE_CONFIG } from '@techgear/data-access/auth';
+import { of } from 'rxjs';
 import { LoginPageComponent } from './login-page';
 
 describe('LoginPageComponent logic', () => {
@@ -11,6 +12,7 @@ describe('LoginPageComponent logic', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        { provide: AuthApiService, useValue: { sampleAccount: vi.fn().mockReturnValue(of(null)) } },
         { provide: AuthStore, useValue: { login, status: () => 'idle' } },
         { provide: Router, useValue: { navigateByUrl } },
         {
@@ -27,7 +29,8 @@ describe('LoginPageComponent logic', () => {
             appTitle: 'TechGear',
             subtitle: 'Sign in',
             defaultRedirectUrl: '/catalog',
-            demoAccount: null,
+            accountHint: null,
+            remoteAccountPath: null,
           },
         },
       ],
@@ -47,6 +50,7 @@ describe('LoginPageComponent logic', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        { provide: AuthApiService, useValue: { sampleAccount: vi.fn().mockReturnValue(of(null)) } },
         { provide: AuthStore, useValue: { login, status: () => 'idle' } },
         { provide: Router, useValue: { navigateByUrl } },
         {
@@ -63,7 +67,8 @@ describe('LoginPageComponent logic', () => {
             appTitle: 'TechGear',
             subtitle: 'Sign in',
             defaultRedirectUrl: '/catalog',
-            demoAccount: null,
+            accountHint: null,
+            remoteAccountPath: null,
           },
         },
       ],
@@ -74,5 +79,52 @@ describe('LoginPageComponent logic', () => {
     await component.onSubmit({ username: 'emilys', password: 'emilyspass' });
 
     expect(navigateByUrl).toHaveBeenCalledWith('/inventory');
+  });
+
+  it('loads a remote sample account when configured', async () => {
+    const sampleAccount = {
+      email: 'olivia.wilson@x.dummyjson.com',
+      username: 'oliviaw',
+      password: 'oliviawpass',
+      role: 'moderator',
+      source: 'remote' as const,
+    };
+    const sampleAccountLoader = vi.fn().mockReturnValue(of(sampleAccount));
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthApiService, useValue: { sampleAccount: sampleAccountLoader } },
+        { provide: AuthStore, useValue: { login: vi.fn(), status: () => 'idle' } },
+        { provide: Router, useValue: { navigateByUrl: vi.fn() } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              queryParamMap: convertToParamMap({}),
+            },
+          },
+        },
+        {
+          provide: LOGIN_PAGE_CONFIG,
+          useValue: {
+            appTitle: 'TechGear',
+            subtitle: 'Sign in',
+            defaultRedirectUrl: '/catalog',
+            accountHint: null,
+            remoteAccountPath: '/users/6',
+          },
+        },
+      ],
+    });
+
+    const component = TestBed.runInInjectionContext(() => new LoginPageComponent());
+    await vi.waitFor(() => {
+      expect(component.accountHint()).toEqual(sampleAccount);
+    });
+    expect(sampleAccountLoader).toHaveBeenCalledWith('/users/6');
+    expect(component.demoCredentials()).toEqual({
+      username: 'oliviaw',
+      password: 'oliviawpass',
+    });
   });
 });

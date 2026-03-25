@@ -22,14 +22,24 @@
     <p class="tg-line-clamp-2 tg-text-sm tg-text-slate-600">{{ product().description }}</p>
   </div>
 
-  <div class="tg-flex tg-items-center tg-justify-between">
+  <div class="tg-flex tg-flex-wrap tg-items-center tg-justify-between tg-gap-2">
     <p class="tg-text-lg tg-font-bold tg-text-slate-900">{{ product().price | currency }}</p>
-    <button
-      type="button"
-      class="tg-rounded-md tg-bg-slate-900 tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-white hover:tg-bg-slate-700"
-      (click)="onView()"
-    >
-      View
-    </button>
+    <div class="tg-flex tg-items-center tg-gap-2">
+      <button
+        type="button"
+        class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 hover:tg-bg-slate-100"
+        (click)="onView()"
+      >
+        View
+      </button>
+      <button
+        type="button"
+        class="tg-rounded-md tg-bg-slate-900 tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-white hover:tg-bg-slate-700 disabled:tg-cursor-not-allowed disabled:tg-bg-slate-300 disabled:tg-text-slate-500"
+        [disabled]="!canAddToCart()"
+        (click)="onAddToCart()"
+      >
+        Add to cart
+      </button>
+    </div>
   </div>
 </article>

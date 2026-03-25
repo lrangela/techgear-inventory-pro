@@ -5,8 +5,7 @@
     <div>
       <h2 class="tg-text-2xl tg-font-semibold tg-text-slate-900">Inventory Dashboard</h2>
       <p class="tg-mt-1 tg-text-sm tg-text-slate-500">
-        Data source: localStorage (key <code class="tg-font-mono">techgear_inventory</code>) through
-        <code class="tg-font-mono">InventoryStore</code>.
+        Stock overrides and movement history are stored locally for the demo, but products are always synchronized from the catalog master list.
       </p>
     </div>
   </div>
@@ -32,21 +31,9 @@
     (ngSubmit)="onAdjustStockSubmit()"
   >
     <div class="md:tg-col-span-2 tg-rounded-lg tg-bg-slate-50 tg-p-3 tg-text-sm tg-text-slate-600">
-      Select movement details instead of entering free text. This reduces mistakes and speeds up inventory updates.
+      Inventory adjustments are constrained to existing catalog products. This avoids orphan stock records and keeps the demo closer to a real backoffice flow.
     </div>
 
-    <label class="tg-grid tg-gap-1">
-      <span class="tg-text-sm tg-font-medium tg-text-slate-700">Product source</span>
-      <select
-        formControlName="productMode"
-        class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
-      >
-        <option value="existing">Existing product</option>
-        <option value="new">New product</option>
-      </select>
-    </label>
-
-    @if (movementForm.controls.productMode.value === 'existing') {
     <label class="tg-grid tg-gap-1">
       <span class="tg-text-sm tg-font-medium tg-text-slate-700">Product</span>
       <select
@@ -61,26 +48,6 @@
         }
       </select>
     </label>
-    } @else {
-    <label class="tg-grid tg-gap-1">
-      <span class="tg-text-sm tg-font-medium tg-text-slate-700">New product ID</span>
-      <input
-        type="number"
-        min="1"
-        formControlName="newProductId"
-        class="tg-rounded-md tg-border tg-border-slate-300 tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
-      />
-    </label>
-
-    <label class="tg-grid tg-gap-1">
-      <span class="tg-text-sm tg-font-medium tg-text-slate-700">New product name</span>
-      <input
-        type="text"
-        formControlName="newProductName"
-        class="tg-rounded-md tg-border tg-border-slate-300 tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
-      />
-    </label>
-    }
 
     <label class="tg-grid tg-gap-1">
       <span class="tg-text-sm tg-font-medium tg-text-slate-700">Movement type</span>
@@ -174,7 +141,7 @@
         <h3 class="tg-text-lg tg-font-semibold tg-text-slate-900">Current stock</h3>
       </header>
 
-      @if (inventoryStore.items().length === 0) {
+      @if (inventoryItems().length === 0) {
       <p class="tg-p-6 tg-text-sm tg-text-slate-500">No products in inventory yet.</p>
       } @else {
       <div class="tg-overflow-x-auto">
@@ -188,7 +155,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (item of inventoryStore.items(); track item.productId) {
+            @for (item of inventoryItems(); track item.productId) {
             <tr class="tg-border-t tg-border-slate-100">
               <td class="tg-px-4 tg-py-3 tg-text-sm tg-text-slate-700">{{ item.productId }}</td>
               <td class="tg-px-4 tg-py-3 tg-text-sm tg-font-medium tg-text-slate-900">{{ item.productName }}</td>
@@ -207,9 +174,14 @@
         <h3 class="tg-text-lg tg-font-semibold tg-text-slate-900">Movement history</h3>
       </header>
 
-      @if (inventoryStore.movements().length === 0) {
+      @if (recentMovements().length === 0) {
       <p class="tg-p-6 tg-text-sm tg-text-slate-500">No movement records yet.</p>
       } @else {
+      @if (hasTrimmedMovements()) {
+      <p class="tg-border-b tg-border-slate-200 tg-bg-slate-50 tg-p-4 tg-text-sm tg-text-slate-500">
+        Showing the most recent {{ recentMovements().length }} movements to keep the demo responsive.
+      </p>
+      }
       <div class="tg-max-h-[460px] tg-overflow-auto">
         <table class="tg-min-w-full">
           <thead class="tg-sticky tg-top-0 tg-bg-slate-50">
@@ -221,7 +193,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (movement of inventoryStore.movements(); track movement.id) {
+            @for (movement of recentMovements(); track movement.id) {
             <tr class="tg-border-t tg-border-slate-100">
               <td class="tg-px-4 tg-py-3 tg-text-sm tg-text-slate-500">{{ movement.timestamp | date:'short' }}</td>
               <td class="tg-px-4 tg-py-3 tg-text-sm tg-font-medium tg-text-slate-900">{{ movement.productName }}</td>

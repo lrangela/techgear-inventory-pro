@@ -26,7 +26,9 @@ export type ProductCardItem = {
 })
 export class ProductCardComponent {
   readonly product = input.required<ProductCardItem>();
+  readonly canAddToCart = input(true);
   readonly view = output<number>();
+  readonly addToCart = output<number>();
   readonly imageUrl = computed(() => {
     const item = this.product();
     return resolveDisplayImageUrl(item.images[0], item.title, 600, 400, item.category?.name);
@@ -50,5 +52,13 @@ export class ProductCardComponent {
 
   onView(): void {
     this.view.emit(this.product().id);
+  }
+
+  onAddToCart(): void {
+    if (!this.canAddToCart()) {
+      return;
+    }
+
+    this.addToCart.emit(this.product().id);
   }
 }

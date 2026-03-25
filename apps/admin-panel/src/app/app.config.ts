@@ -19,8 +19,7 @@ import {
 import { InventoryStore } from '@techgear/data-access/inventory';
 import { PRODUCTS_API_BASE_URL } from '@techgear/data-access/products';
 import { CATEGORIES_API_BASE_URL } from '@techgear/data-access/categories';
-import { httpErrorInterceptor } from '@techgear/util';
-import { environment } from '../environments/environment';
+import { httpErrorInterceptor, AppConfigService } from '@techgear/util';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -30,58 +29,72 @@ export const appConfig: ApplicationConfig = {
     provideTokenStorage(),
     {
       provide: AUTH_API_BASE_URL,
-      useValue: environment.apiBaseUrl,
+      useFactory: () => inject(AppConfigService).apiBaseUrl,
     },
     {
       provide: PRODUCTS_API_BASE_URL,
-      useValue: environment.apiBaseUrl,
+      useFactory: () => inject(AppConfigService).apiBaseUrl,
     },
     {
       provide: CATEGORIES_API_BASE_URL,
-      useValue: environment.apiBaseUrl,
+      useFactory: () => inject(AppConfigService).apiBaseUrl,
     },
     {
       provide: LOGIN_PAGE_CONFIG,
-      useValue: {
-        appTitle: 'TechGear Admin Panel',
-        subtitle: 'Sign in to review the inventory dashboard and product management flows.',
-        defaultRedirectUrl: '/products',
-        demoAccount: {
-          email: 'admin.demo@techgear.dev',
-          username: 'admin-demo',
-          password: 'AdminDemo123!',
-        },
+      useFactory: () => {
+        const config = inject(AppConfigService);
+        return {
+          appTitle: 'TechGear Admin Panel',
+          subtitle:
+            'Sign in to review the inventory dashboard and product management flows. Admin access is restricted by role.',
+          defaultRedirectUrl: '/products',
+          accountHint:
+            config.authMode === 'mock'
+              ? {
+                  email: 'admin.demo@techgear.dev',
+                  username: 'admin-demo',
+                  password: 'AdminDemo123!',
+                  role: 'admin',
+                  source: 'mock',
+                }
+              : null,
+          remoteAccountPath: config.authMode === 'remote' ? '/users/1' : null,
+        };
       },
     },
     {
       provide: AUTH_RUNTIME_CONFIG,
-      useValue: {
-        mode: environment.authMode,
-        mockAccounts: [
-          {
-            id: 9001,
-            email: 'admin.demo@techgear.dev',
-            username: 'admin-demo',
-            password: 'AdminDemo123!',
-            name: 'Admin Demo User',
-            role: 'admin',
+      useFactory: () => {
+        const config = inject(AppConfigService);
+        return {
+          mode: config.authMode,
+          defaultRemoteRole: 'customer',
+          roleOverrides: {
+            'admin-demo': 'admin',
+            'admin.demo@techgear.dev': 'admin',
           },
-          {
-            id: 1001,
-            email: 'shop.demo@techgear.dev',
-            username: 'shop-demo',
-            password: 'ShopDemo123!',
-            name: 'Shop Demo User',
-            role: 'customer',
-          },
-        ],
+          mockAccounts: [
+            {
+              id: 9001,
+              email: 'admin.demo@techgear.dev',
+              username: 'admin-demo',
+              password: 'AdminDemo123!',
+              name: 'Admin Demo User',
+              role: 'admin',
+            },
+          ],
+        };
       },
     },
     provideAppInitializer(() => {
+      const configService = inject(AppConfigService);
       const authStore = inject(AuthStore);
       const inventoryStore = inject(InventoryStore);
-      authStore.initFromStorage();
-      inventoryStore.loadFromStorage();
+
+      return configService.loadConfig().then(() => {
+        authStore.initFromStorage();
+        inventoryStore.loadFromStorage();
+      });
     }),
     provideRouter(appRoutes),
   ],

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, HostListener, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ConfirmDialogService } from './confirm-dialog.service';
 
 @Component({
@@ -7,6 +7,9 @@ import { ConfirmDialogService } from './confirm-dialog.service';
   templateUrl: './confirm-dialog-host.component.html',
   styleUrl: './confirm-dialog-host.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:keydown.escape)': 'onEscapeKey()',
+  },
 })
 export class ConfirmDialogHostComponent {
   readonly confirmDialog = inject(ConfirmDialogService);
@@ -17,7 +20,6 @@ export class ConfirmDialogHostComponent {
     }
   }
 
-  @HostListener('document:keydown.escape')
   onEscapeKey(): void {
     if (this.confirmDialog.state()) {
       this.confirmDialog.cancel();

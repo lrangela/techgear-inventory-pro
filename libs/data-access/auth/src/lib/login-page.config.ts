@@ -1,23 +1,20 @@
 import { InjectionToken } from '@angular/core';
-
-export type DemoAccount = {
-  email: string;
-  username: string;
-  password: string;
-};
+import { LoginAccountHint } from './models/auth.models';
 
 export type LoginPageConfig = {
   appTitle: string;
   subtitle: string;
   defaultRedirectUrl: string;
-  demoAccount: DemoAccount | null;
+  accountHint: LoginAccountHint | null;
+  remoteAccountPath?: string | null;
 };
 
 const DEFAULT_LOGIN_PAGE_CONFIG: LoginPageConfig = {
   appTitle: 'TechGear Inventory Pro',
   subtitle: 'Sign in to continue.',
   defaultRedirectUrl: '/catalog',
-  demoAccount: null,
+  accountHint: null,
+  remoteAccountPath: null,
 };
 
 export const LOGIN_PAGE_CONFIG = new InjectionToken<LoginPageConfig>(

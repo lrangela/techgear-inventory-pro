@@ -9,6 +9,7 @@ import { TOKEN_STORAGE, TokenStorage } from '../storage/token.storage';
 describe('AuthStore', () => {
   const mockUser: AuthUser = {
     id: 1,
+    username: 'qa-user',
     email: 'qa@example.com',
     name: 'QA User',
     avatar: 'https://example.com/avatar.png',
@@ -87,10 +88,9 @@ describe('AuthStore', () => {
 
     store.initFromStorage();
 
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(storageMock.clear).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(storageMock.clear).toHaveBeenCalledTimes(1);
+    });
     expect(store.accessToken()).toBeNull();
     expect(store.refreshToken()).toBeNull();
     expect(store.user()).toBeNull();

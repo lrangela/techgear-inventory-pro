@@ -139,15 +139,19 @@ export function normalizeAppError(error: unknown): AppErrorModel {
 @Injectable({ providedIn: 'root' })
 export class AppErrorState {
   private readonly latestSignal = signal<AppErrorModel | null>(null);
+  private readonly historySignal = signal<AppErrorModel[]>([]);
 
   readonly latest = computed(() => this.latestSignal());
+  readonly history = computed(() => this.historySignal());
 
   report(error: unknown): AppErrorModel {
     const appError = normalizeAppError(error);
     this.latestSignal.set(appError);
+    this.historySignal.update((current) => [appError, ...current].slice(0, 20));
 
-    // Minimal centralized logging for diagnostics.
-    console.error('[AppError]', appError, error);
+    if (typeof ngDevMode !== 'undefined' && ngDevMode) {
+      console.error('[AppError]', appError, error);
+    }
 
     return appError;
   }

@@ -1,8 +1,14 @@
 <section class="tg-space-y-6 tg-p-6">
   <header class="tg-space-y-1">
     <h1 class="tg-text-2xl tg-font-semibold tg-text-slate-900">Catalog</h1>
-    <p class="tg-text-sm tg-text-slate-600">Browse products and open product details.</p>
+    <p class="tg-text-sm tg-text-slate-600">Browse products, add items to the cart, or open product details.</p>
   </header>
+
+  @if (addToCartFeedback(); as feedback) {
+  <div class="tg-rounded-lg tg-border tg-border-emerald-200 tg-bg-emerald-50 tg-p-4 tg-text-sm tg-text-emerald-700">
+    {{ feedback }}
+  </div>
+  }
 
   @if (categoriesError()) {
   <div class="tg-rounded-lg tg-border tg-border-rose-200 tg-bg-rose-50 tg-p-4 tg-text-sm tg-text-rose-700">
@@ -36,7 +42,12 @@
   <div class="tg-grid tg-grid-cols-1 tg-gap-4 sm:tg-grid-cols-2 lg:tg-grid-cols-3">
     @for (product of productsWithStock(); track product.id) {
     <div class="tg-relative">
-      <lib-product-card [product]="product" (view)="openProduct($event)" />
+      <lib-product-card
+        [product]="product"
+        [canAddToCart]="product.stock > 0"
+        (view)="openProduct($event)"
+        (addToCart)="addProductToCart($event)"
+      />
       @if (product.stock > 0) {
       <span
         class="tg-absolute tg-top-2 tg-right-2 tg-rounded-full tg-bg-green-100 tg-px-2.5 tg-py-0.5 tg-text-xs tg-font-medium tg-text-green-800">

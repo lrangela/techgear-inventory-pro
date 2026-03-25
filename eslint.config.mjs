@@ -26,7 +26,7 @@ export default [
             },
             {
               sourceTag: 'scope:inventory',
-              onlyDependOnLibsWithTags: ['scope:inventory', 'scope:shared']
+              onlyDependOnLibsWithTags: ['scope:inventory', 'scope:products', 'scope:shared']
             },
             {
               sourceTag: 'scope:products',

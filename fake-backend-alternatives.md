@@ -81,9 +81,32 @@
   - Current project phase prioritizes speed and minimal backend overhead.
 - **Official link:** https://appwrite.io/
 
-## Technical Rationale for Choosing DummyJSON
-DummyJSON was selected because it provides realistic, ready-to-consume HTTP data with zero infrastructure setup, zero backend modeling effort, and no initial operational cost.
+## Current Architectural Position
 
-For the current objective (frontend development, flow validation, and rapid testing), it maximizes delivery speed while minimizing technical complexity, and still allows a clean migration path to a real backend later.
+DummyJSON remains the selected backend source for the public demo because it provides:
+
+- realistic product/category payloads,
+- auth endpoints useful for frontend flow validation,
+- zero infrastructure overhead for GitHub Pages delivery.
+
+The project now makes these limits explicit:
+
+- no real server-side authorization guarantee,
+- no owned persistence for inventory/cart truth,
+- no secure cookie/session policy under project control,
+- no payment/checkout backend.
+
+Because of that, the frontend was updated to:
+
+- use session-scoped token persistence instead of `localStorage`,
+- treat admin RBAC as frontend UX control only,
+- synchronize inventory against the product catalog master list,
+- disable fake checkout instead of pretending it works.
+
+## Technical Rationale for Choosing DummyJSON
+
+DummyJSON was selected because it offers realistic, ready-to-consume HTTP data with zero infrastructure setup, zero backend modeling effort, and no initial operational cost.
+
+For the current objective (frontend architecture demo, flow validation, and rapid testing), it maximizes delivery speed while keeping a clear migration path to a real backend later.
 
 **Reference:** https://dummyjson.com/

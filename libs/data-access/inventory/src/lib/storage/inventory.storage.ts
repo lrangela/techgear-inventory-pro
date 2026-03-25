@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { getBrowserStorage, readJsonFromStorage, writeJsonToStorage } from '@techgear/util';
 import type { InventoryItem, StockMovement } from '../models/inventory.models';
 
 const INVENTORY_KEY = 'techgear_inventory';
@@ -10,18 +11,21 @@ interface StoredInventory {
 
 @Injectable({ providedIn: 'root' })
 export class InventoryStorageService {
+    private readonly sessionStorageRef = getBrowserStorage('session');
+
     save(data: StoredInventory): void {
-        localStorage.setItem(INVENTORY_KEY, JSON.stringify(data));
+        writeJsonToStorage(this.sessionStorageRef, INVENTORY_KEY, data);
     }
 
     load(): StoredInventory {
-        const data = localStorage.getItem(INVENTORY_KEY);
-        if (!data) return { items: [], movements: [] };
-
-        const parsed = JSON.parse(data) as {
+        const parsed = readJsonFromStorage<{
             items?: Array<InventoryItem & { lastUpdated: string | Date }>;
             movements?: Array<StockMovement & { timestamp: string | Date }>;
-        };
+        } | null>(this.sessionStorageRef, INVENTORY_KEY, null);
+
+        if (!parsed) {
+            return { items: [], movements: [] };
+        }
 
         const parsedItems = Array.isArray(parsed.items) ? parsed.items : [];
         const parsedMovements = Array.isArray(parsed.movements) ? parsed.movements : [];

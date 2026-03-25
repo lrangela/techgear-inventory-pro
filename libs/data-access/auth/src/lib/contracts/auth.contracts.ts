@@ -20,3 +20,14 @@ export const AuthUserDtoSchema = z
   .passthrough();
 
 export type AuthUserDto = z.infer<typeof AuthUserDtoSchema>;
+
+export const AuthLoginHintDtoSchema = z
+  .object({
+    username: z.string().min(1, 'Username is required'),
+    password: z.string().min(1, 'Password is required'),
+    email: z.string().email('Email is invalid'),
+    role: z.string().optional(),
+  })
+  .passthrough();
+
+export type AuthLoginHintDto = z.infer<typeof AuthLoginHintDtoSchema>;

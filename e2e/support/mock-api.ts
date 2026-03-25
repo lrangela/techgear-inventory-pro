@@ -49,11 +49,6 @@ async function fulfillJson(route: Route, body: unknown): Promise<void> {
 }
 
 async function mockSharedAuth(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    localStorage.clear();
-    sessionStorage.clear();
-  });
-
   await page.route(/(https:\/\/dummyjson\.com|\/api)\/auth\/login$/, async (route) => {
     await fulfillJson(route, {
       accessToken: 'playwright-access-token',

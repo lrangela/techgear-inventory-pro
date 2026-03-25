@@ -8,6 +8,7 @@ import {
 } from '../contracts/products.contracts';
 import {
   ProductCreateRequest,
+  ProductsListResult,
   ProductUpdateRequest,
   ProductsListParams,
   mapProduct,
@@ -23,14 +24,23 @@ export class ProductsApiService {
   private readonly baseUrl = inject(PRODUCTS_API_BASE_URL);
 
   getProducts(params?: ProductsListParams) {
+    const endpoint = params?.categoryId
+      ? `${this.baseUrl}/products/category/${encodeURIComponent(params.categoryId)}`
+      : `${this.baseUrl}/products`;
+
     return this.http
-      .get<unknown>(`${this.baseUrl}/products`, {
+      .get<unknown>(endpoint, {
         params: buildProductsParams(params),
       })
       .pipe(
         map((response) => {
           const dto = parseWithZod(ProductsListDtoSchema, response, 'products.list');
-          return mapProducts(dto.products);
+          return {
+            items: mapProducts(dto.products),
+            total: dto.total,
+            skip: dto.skip,
+            limit: dto.limit,
+          } satisfies ProductsListResult;
         })
       );
   }

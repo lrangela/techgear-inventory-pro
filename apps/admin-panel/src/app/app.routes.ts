@@ -1,5 +1,6 @@
 import { Route } from '@angular/router';
-import { authGuard } from '@techgear/data-access/auth';
+import { authGuard, roleGuard } from '@techgear/data-access/auth';
+import { pendingChangesGuard } from '@techgear/util';
 
 export const appRoutes: Route[] = [
   {
@@ -15,8 +16,14 @@ export const appRoutes: Route[] = [
       ),
   },
   {
+    path: 'forbidden',
+    loadComponent: () =>
+      import('./forbidden-page').then((module) => module.ForbiddenPageComponent),
+  },
+  {
     path: 'products',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['admin'], unauthorizedRedirectTo: '/forbidden' },
     loadComponent: () =>
       import('@techgear/features-admin-products').then(
         (module) => module.ProductsListComponent
@@ -24,7 +31,9 @@ export const appRoutes: Route[] = [
   },
   {
     path: 'products/new',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard],
+    canDeactivate: [pendingChangesGuard],
+    data: { roles: ['admin'], unauthorizedRedirectTo: '/forbidden' },
     loadComponent: () =>
       import('@techgear/features-admin-products').then(
         (module) => module.ProductEditComponent
@@ -32,7 +41,9 @@ export const appRoutes: Route[] = [
   },
   {
     path: 'products/:id',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard],
+    canDeactivate: [pendingChangesGuard],
+    data: { roles: ['admin'], unauthorizedRedirectTo: '/forbidden' },
     loadComponent: () =>
       import('@techgear/features-admin-products').then(
         (module) => module.ProductEditComponent
@@ -40,7 +51,8 @@ export const appRoutes: Route[] = [
   },
   {
     path: 'inventory',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['admin'], unauthorizedRedirectTo: '/forbidden' },
     loadComponent: () =>
       import('@techgear/features-admin-inventory').then(
         (module) => module.InventoryDashboardComponent

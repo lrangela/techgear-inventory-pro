@@ -20,8 +20,7 @@ import { PRODUCTS_API_BASE_URL } from '@techgear/data-access/products';
 import { CATEGORIES_API_BASE_URL } from '@techgear/data-access/categories';
 import { InventoryStore } from '@techgear/data-access/inventory';
 import { CartStore } from '@techgear/data-access-cart';
-import { httpErrorInterceptor } from '@techgear/util';
-import { environment } from '../environments/environment';
+import { httpErrorInterceptor, AppConfigService } from '@techgear/util';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -31,60 +30,77 @@ export const appConfig: ApplicationConfig = {
     provideTokenStorage(),
     {
       provide: AUTH_API_BASE_URL,
-      useValue: environment.apiBaseUrl,
+      useFactory: () => inject(AppConfigService).apiBaseUrl,
     },
     {
       provide: PRODUCTS_API_BASE_URL,
-      useValue: environment.apiBaseUrl,
+      useFactory: () => inject(AppConfigService).apiBaseUrl,
     },
     {
       provide: CATEGORIES_API_BASE_URL,
-      useValue: environment.apiBaseUrl,
+      useFactory: () => inject(AppConfigService).apiBaseUrl,
     },
     {
       provide: LOGIN_PAGE_CONFIG,
-      useValue: {
-        appTitle: 'TechGear Inventory Pro',
-        subtitle: 'Sign in to explore the storefront, product detail flow, and cart experience.',
-        defaultRedirectUrl: '/catalog',
-        demoAccount: {
-          email: 'shop.demo@techgear.dev',
-          username: 'shop-demo',
-          password: 'ShopDemo123!',
-        },
+      useFactory: () => {
+        const config = inject(AppConfigService);
+        return {
+          appTitle: 'TechGear Inventory Pro',
+          subtitle: 'Sign in to explore the storefront, product detail flow, and cart experience.',
+          defaultRedirectUrl: '/catalog',
+          accountHint:
+            config.authMode === 'mock'
+              ? {
+                  email: 'shop.demo@techgear.dev',
+                  username: 'shop-demo',
+                  password: 'ShopDemo123!',
+                  role: 'customer',
+                  source: 'mock',
+                }
+              : null,
+          remoteAccountPath: config.authMode === 'remote' ? '/users/6' : null,
+        };
       },
     },
     {
       provide: AUTH_RUNTIME_CONFIG,
-      useValue: {
-        mode: environment.authMode,
-        mockAccounts: [
-          {
-            id: 1001,
-            email: 'shop.demo@techgear.dev',
-            username: 'shop-demo',
-            password: 'ShopDemo123!',
-            name: 'Shop Demo User',
-            role: 'customer',
+      useFactory: () => {
+        const config = inject(AppConfigService);
+        return {
+          mode: config.authMode,
+          defaultRemoteRole: 'customer',
+          roleOverrides: {
+            'shop-demo': 'customer',
+            'shop.demo@techgear.dev': 'customer',
+            oliviaw: 'customer',
+            'olivia.wilson@x.dummyjson.com': 'customer',
+            'admin-demo': 'admin',
+            'admin.demo@techgear.dev': 'admin',
           },
-          {
-            id: 9001,
-            email: 'admin.demo@techgear.dev',
-            username: 'admin-demo',
-            password: 'AdminDemo123!',
-            name: 'Admin Demo User',
-            role: 'admin',
-          },
-        ],
+          mockAccounts: [
+            {
+              id: 1001,
+              email: 'shop.demo@techgear.dev',
+              username: 'shop-demo',
+              password: 'ShopDemo123!',
+              name: 'Shop Demo User',
+              role: 'customer',
+            },
+          ],
+        };
       },
     },
     provideAppInitializer(() => {
+      const configService = inject(AppConfigService);
       const authStore = inject(AuthStore);
       const inventoryStore = inject(InventoryStore);
       const cartStore = inject(CartStore);
-      authStore.initFromStorage();
-      inventoryStore.loadFromStorage();
-      cartStore.loadFromStorage();
+
+      return configService.loadConfig().then(() => {
+        authStore.initFromStorage();
+        inventoryStore.loadFromStorage();
+        cartStore.loadFromStorage();
+      });
     }),
     provideRouter(appRoutes),
   ],

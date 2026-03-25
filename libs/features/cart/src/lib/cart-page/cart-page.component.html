@@ -87,12 +87,20 @@
       </div>
 
       <button
+        type="button"
+        disabled
+        aria-disabled="true"
         class="tg-mt-6 tg-w-full tg-rounded-lg tg-bg-indigo-600 tg-py-3 tg-text-sm tg-font-semibold tg-text-white tg-transition-colors hover:tg-bg-indigo-700"
       >
-        Proceed to Checkout
+        Demo only: checkout not implemented
       </button>
 
+      <p class="tg-mt-2 tg-text-xs tg-text-slate-500">
+        This portfolio demo focuses on catalog, auth, cart, and inventory flows. Payment is intentionally disabled.
+      </p>
+
       <button
+        type="button"
         (click)="onClearCart()"
         class="tg-mt-3 tg-w-full tg-rounded-lg tg-border tg-border-slate-300 tg-bg-white tg-py-3 tg-text-sm tg-font-semibold tg-text-slate-700 hover:tg-bg-slate-100"
       >

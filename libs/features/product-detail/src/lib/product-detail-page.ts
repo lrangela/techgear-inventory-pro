@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { InventoryStore } from '@techgear/data-access/inventory';
 import { ProductsStore } from '@techgear/data-access/products';
 import { CartInventoryFacade } from '@techgear/data-access-cart';
 import { ProductDetailViewComponent } from '@techgear/ui';
@@ -27,6 +28,8 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly productsStore = inject(ProductsStore);
   private readonly cartFacade = inject(CartInventoryFacade);
+  private readonly inventoryStore = inject(InventoryStore);
+  private resetFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly product = this.productsStore.selected;
   readonly error = this.productsStore.selectedError;
@@ -59,6 +62,15 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
         this.qty.set(available);
       }
     });
+
+    effect(() => {
+      const product = this.product();
+      if (!product) {
+        return;
+      }
+
+      this.inventoryStore.seedMissingProducts([{ id: product.id, title: product.title }], 5);
+    });
   }
 
   decreaseQty(): void {
@@ -87,7 +99,10 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     this.addedQty.set(result.appliedQty);
     this.limitedByStock.set(result.limitedByStock);
     this.qty.set(1);
-    setTimeout(() => {
+    if (this.resetFeedbackTimer) {
+      clearTimeout(this.resetFeedbackTimer);
+    }
+    this.resetFeedbackTimer = setTimeout(() => {
       this.addedQty.set(0);
       this.limitedByStock.set(false);
     }, 2200);
@@ -105,6 +120,9 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.resetFeedbackTimer) {
+      clearTimeout(this.resetFeedbackTimer);
+    }
     this.productsStore.clearSelected();
   }
 

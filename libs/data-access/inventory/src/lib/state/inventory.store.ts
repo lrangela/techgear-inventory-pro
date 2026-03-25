@@ -9,6 +9,8 @@ interface InventoryState {
     movements: StockMovement[];
 }
 
+const MAX_STORED_MOVEMENTS = 500;
+
 const initialState: InventoryState = {
     items: [],
     movements: [],
@@ -20,7 +22,7 @@ export const InventoryStore = signalStore(
     withMethods((store, storage = inject(InventoryStorageService)) => ({
         adjustStock(productId: number, productName: string, delta: number, reason?: string) {
             const existing = store.items().find((i: InventoryItem) => i.productId === productId);
-            const newStock = (existing?.stock ?? 0) + delta;
+            const newStock = Math.max(0, (existing?.stock ?? 0) + delta);
 
             const newItems = existing
                 ? store.items().map((i: InventoryItem) => i.productId === productId ? { ...i, stock: newStock, lastUpdated: new Date() } : i)
@@ -35,7 +37,7 @@ export const InventoryStore = signalStore(
                 reason,
             };
 
-            const newMovements = [...store.movements(), movement];
+            const newMovements = [...store.movements(), movement].slice(-MAX_STORED_MOVEMENTS);
 
             patchState(store, { items: newItems, movements: newMovements });
             storage.save({ items: newItems, movements: newMovements });
@@ -62,6 +64,38 @@ export const InventoryStore = signalStore(
 
             patchState(store, { items: newItems });
             storage.save({ items: newItems, movements: store.movements() });
+        },
+        syncWithCatalog(products: { id: number; title: string }[], defaultStock = 5) {
+            const currentItems = store.items();
+            const nextItems: InventoryItem[] = products.map((product) => {
+                const existing = currentItems.find((item) => item.productId === product.id);
+
+                return existing
+                    ? { ...existing, productName: product.title }
+                    : {
+                        productId: product.id,
+                        productName: product.title,
+                        stock: defaultStock,
+                        lastUpdated: new Date(),
+                    };
+            });
+
+            const hasSameItems =
+                currentItems.length === nextItems.length &&
+                currentItems.every((item, index) => {
+                    const next = nextItems[index];
+                    return !!next &&
+                        item.productId === next.productId &&
+                        item.productName === next.productName &&
+                        item.stock === next.stock;
+                });
+
+            if (hasSameItems) {
+                return;
+            }
+
+            patchState(store, { items: nextItems });
+            storage.save({ items: nextItems, movements: store.movements() });
         },
         seedIfEmpty(products: { id: number; title: string }[], defaultStock = 5) {
             if (store.items().length > 0) {

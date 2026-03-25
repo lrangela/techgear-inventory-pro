@@ -4,33 +4,55 @@
     <p class="tg-text-sm tg-text-slate-600">{{ subtitle }}</p>
   </div>
 
-  @if (demoAccount) {
+  @if (accessNotice()) {
+    <div
+      class="tg-mx-auto tg-mt-4 tg-max-w-md tg-rounded-xl tg-border tg-border-rose-200 tg-bg-rose-50 tg-p-4 tg-text-sm tg-text-rose-700"
+      aria-live="polite"
+    >
+      {{ accessNotice() }}
+    </div>
+  }
+
+  @if (accountHint(); as account) {
     <div
       class="tg-mx-auto tg-mt-4 tg-grid tg-max-w-md tg-gap-3 tg-rounded-xl tg-border tg-border-amber-200 tg-bg-amber-50 tg-p-4"
-      aria-label="Demo credentials"
+      aria-label="Login account hint"
     >
       <div class="tg-space-y-1">
         <h2 class="tg-text-sm tg-font-semibold tg-uppercase tg-tracking-wide tg-text-amber-900">
-          Demo Credentials
+          {{ accountHintTitle() }}
         </h2>
         <p class="tg-text-sm tg-text-amber-800">
-          Use the sample account below to access the public demo build.
+          {{ accountHintMessage() }}
         </p>
       </div>
 
       <dl class="tg-grid tg-gap-2 tg-text-sm">
         <div class="tg-grid tg-gap-1">
           <dt class="tg-font-medium tg-text-amber-950">Email</dt>
-          <dd class="tg-break-all tg-text-amber-900">{{ demoAccount.email }}</dd>
+          <dd class="tg-break-all tg-text-amber-900">{{ account.email }}</dd>
         </div>
         <div class="tg-grid tg-gap-1">
           <dt class="tg-font-medium tg-text-amber-950">Username</dt>
-          <dd class="tg-break-all tg-font-mono tg-text-amber-900">{{ demoAccount.username }}</dd>
+          <dd class="tg-break-all tg-font-mono tg-text-amber-900">{{ account.username }}</dd>
         </div>
-        <div class="tg-grid tg-gap-1">
-          <dt class="tg-font-medium tg-text-amber-950">Password</dt>
-          <dd class="tg-break-all tg-font-mono tg-text-amber-900">{{ demoAccount.password }}</dd>
-        </div>
+        @if (account.source === 'mock') {
+          <div class="tg-grid tg-gap-1">
+            <dt class="tg-font-medium tg-text-amber-950">Password</dt>
+            <dd class="tg-break-all tg-font-mono tg-text-amber-900">{{ account.password }}</dd>
+          </div>
+        } @else {
+          <div class="tg-grid tg-gap-1">
+            <dt class="tg-font-medium tg-text-amber-950">Password</dt>
+            <dd class="tg-text-amber-900">Prefilled in the form for this API sample account.</dd>
+          </div>
+        }
+        @if (account.role) {
+          <div class="tg-grid tg-gap-1">
+            <dt class="tg-font-medium tg-text-amber-950">Role</dt>
+            <dd class="tg-break-all tg-font-mono tg-text-amber-900">{{ account.role }}</dd>
+          </div>
+        }
       </dl>
     </div>
   }
@@ -39,7 +61,7 @@
     class="tg-mt-4"
     [loading]="isLoading()"
     [error]="errorMessage()"
-    [prefillCredentials]="demoCredentials"
+    [prefillCredentials]="demoCredentials()"
     (submitCredentials)="onSubmit($event)"
   />
 </section>

@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   OnDestroy,
   OnInit,
@@ -11,8 +12,8 @@ import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { InventoryStore } from '@techgear/data-access-inventory';
+import { ProductsStore } from '@techgear/data-access/products';
 
-type ProductMode = 'existing' | 'new';
 type MovementType = 'in' | 'out';
 type ReasonPreset =
   | 'purchase'
@@ -30,15 +31,14 @@ type ReasonPreset =
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class InventoryDashboardComponent implements OnInit, OnDestroy {
+  private readonly maxRenderedMovements = 150;
   readonly inventoryStore = inject(InventoryStore);
+  readonly productsStore = inject(ProductsStore);
   private readonly fb = inject(FormBuilder);
   private formValueSub?: Subscription;
 
   readonly movementForm = this.fb.nonNullable.group({
-    productMode: 'existing' as ProductMode,
     selectedProductId: 0,
-    newProductId: 0,
-    newProductName: '',
     movementType: 'out' as MovementType,
     quantity: 1,
     reasonPreset: '' as '' | ReasonPreset,
@@ -53,9 +53,27 @@ export class InventoryDashboardComponent implements OnInit, OnDestroy {
   readonly totalUnits = computed(() =>
     this.inventoryStore.items().reduce((sum, item) => sum + item.stock, 0)
   );
+  readonly inventoryItems = computed(() =>
+    [...this.inventoryStore.items()].sort((a, b) => a.productName.localeCompare(b.productName))
+  );
+  readonly recentMovements = computed(() =>
+    [...this.inventoryStore.movements()]
+      .slice(-this.maxRenderedMovements)
+      .reverse()
+  );
+  readonly hasTrimmedMovements = computed(
+    () => this.totalMovements() > this.recentMovements().length
+  );
   readonly selectableProducts = computed(() =>
-    [...this.inventoryStore.items()].sort((a, b) =>
-      a.productName.localeCompare(b.productName)
+    this.productsStore
+      .items()
+      .map((product) => ({
+        productId: product.id,
+        productName: product.title,
+        stock: this.inventoryStore.getStock(product.id),
+      }))
+      .sort((a, b) =>
+        a.productName.localeCompare(b.productName)
     )
   );
 
@@ -69,8 +87,23 @@ export class InventoryDashboardComponent implements OnInit, OnDestroy {
       audit: 'Inventory audit',
     };
 
+  constructor() {
+    effect(() => {
+      const products = this.productsStore.items();
+      const status = this.productsStore.listStatus();
+      const isLoading = status === 'loading' || status === 'reloading';
+
+      if (isLoading || products.length === 0) {
+        return;
+      }
+
+      this.inventoryStore.syncWithCatalog(products, 5);
+    });
+  }
+
   ngOnInit(): void {
     this.inventoryStore.loadFromStorage();
+    this.productsStore.ensureListLoaded({ limit: 100, offset: 0 });
     this.formValueSub = this.movementForm.valueChanges.subscribe(() => {
       this.successMessage.set(null);
       this.formError.set(this.buildFormError());
@@ -88,8 +121,8 @@ export class InventoryDashboardComponent implements OnInit, OnDestroy {
   }
 
   selectedStock(): number | null {
-    const { productMode, selectedProductId } = this.movementForm.getRawValue();
-    if (productMode !== 'existing' || !selectedProductId) {
+    const { selectedProductId } = this.movementForm.getRawValue();
+    if (!selectedProductId) {
       return null;
     }
     return this.inventoryStore.getStock(selectedProductId);
@@ -105,27 +138,18 @@ export class InventoryDashboardComponent implements OnInit, OnDestroy {
     }
 
     const {
-      productMode,
       selectedProductId,
-      newProductId,
-      newProductName,
       movementType,
       quantity,
       reasonPreset,
       reasonOther,
     } = this.movementForm.getRawValue();
 
-    const resolvedProduct =
-      productMode === 'existing'
-        ? this.selectableProducts().find((item) => item.productId === selectedProductId)
-        : undefined;
-
-    const productId =
-      productMode === 'existing' ? selectedProductId : Number(newProductId);
-    const productName =
-      productMode === 'existing'
-        ? (resolvedProduct?.productName ?? '')
-        : newProductName.trim();
+    const resolvedProduct = this.selectableProducts().find(
+      (item) => item.productId === selectedProductId
+    );
+    const productId = selectedProductId;
+    const productName = resolvedProduct?.productName ?? '';
     const delta = movementType === 'in' ? quantity : -quantity;
     const reason =
       reasonPreset === 'other'
@@ -139,15 +163,6 @@ export class InventoryDashboardComponent implements OnInit, OnDestroy {
       reason
     );
 
-    if (productMode === 'new') {
-      this.movementForm.patchValue({
-        productMode: 'existing',
-        selectedProductId: productId,
-        newProductId: 0,
-        newProductName: '',
-      });
-    }
-
     this.movementForm.patchValue({
       movementType: 'out',
       quantity: 1,
@@ -160,26 +175,15 @@ export class InventoryDashboardComponent implements OnInit, OnDestroy {
 
   private buildFormError(): string | null {
     const {
-      productMode,
       selectedProductId,
-      newProductId,
-      newProductName,
       movementType,
       quantity,
       reasonPreset,
       reasonOther,
     } = this.movementForm.getRawValue();
 
-    if (productMode === 'existing' && !selectedProductId) {
+    if (!selectedProductId) {
       return 'Select a product.';
-    }
-
-    if (productMode === 'new' && (!newProductId || newProductId < 1)) {
-      return 'Enter a valid ID for the new product.';
-    }
-
-    if (productMode === 'new' && !newProductName.trim()) {
-      return 'Enter a name for the new product.';
     }
 
     if (!quantity || quantity < 1) {
@@ -194,7 +198,7 @@ export class InventoryDashboardComponent implements OnInit, OnDestroy {
       return 'Describe the reason when selecting "Other".';
     }
 
-    if (productMode === 'existing' && movementType === 'out') {
+    if (movementType === 'out') {
       const currentStock = this.inventoryStore.getStock(selectedProductId);
       if (quantity > currentStock) {
         return `Insufficient stock. Current available: ${currentStock}.`;
