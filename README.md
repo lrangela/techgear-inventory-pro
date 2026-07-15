@@ -91,4 +91,10 @@ El pipeline en GitHub Actions aprovecha el grafo de dependencias de Nx.
 ---
 
 ## Deployment
-- **Flujo de Despliegue**: *Pendiente de implementación o evidencia* (Es necesario documentar el flujo de despliegue continuo automatizado hacia infraestructura en la nube y la invalidación de caché en CDN).
+El despliegue está automatizado mediante un pipeline secundario de GitHub Actions (`deploy-pages.yml`) que reacciona a la finalización exitosa de las pruebas de integración (`CI`) en la rama `master`:
+
+1.  **Configuración del Entorno**: Crea dinámicamente un recurso `config.json` inyectando las variables de configuración de las APIs B2B de producción.
+2.  **Compilación Monorepo**: Ejecuta la compilación de producción para `@techgear/shop-web` y `@techgear/admin-panel` asignando de forma diferenciada sus subrutas mediante el parámetro `--base-href`.
+3.  **Ensamblado del Sitio**: Unifica los bundles dentro del directorio de staging `site/`, anidando la consola administrativa en la ruta `site/admin/`.
+4.  **Enrutamiento Estático (404 Fallbacks)**: Copia el archivo `index.html` como `404.html` en el root y en el directorio administrativo para prevenir fallos de recarga del enrutador de Angular.
+5.  **Entrega CDN**: Publica el compilado en **GitHub Pages** utilizando los builders oficiales de GitHub (`actions/deploy-pages`).
