@@ -4,6 +4,13 @@
 
 ---
 
+## Live Demo & Preview
+
+Puedes ver la aplicación en funcionamiento en el siguiente enlace:
+👉 **[TechGear Inventory Pro - Demo en Vivo](https://lrangela.github.io/techgear-inventory-pro/login?returnUrl=%2Fcatalog)**
+
+---
+
 ## Architecture Overview
 
 **TechGear Inventory Pro** es una plataforma B2B de comercio electrónico y control de almacenes de alto rendimiento. La arquitectura está diseñada en un monorepo modular Nx que desacopla la aplicación pública de catálogo del panel de control operativo, garantizando una única fuente de verdad para el dominio del negocio.
