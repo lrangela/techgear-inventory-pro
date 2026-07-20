@@ -17,7 +17,7 @@ import {
   provideTokenStorage,
 } from '@techgear/data-access/auth';
 import { InventoryStore } from '@techgear/data-access/inventory';
-import { PRODUCTS_API_BASE_URL } from '@techgear/data-access/products';
+import { PRODUCTS_API_BASE_URL, provideProductsStorage } from '@techgear/data-access/products';
 import { CATEGORIES_API_BASE_URL } from '@techgear/data-access/categories';
 import { httpErrorInterceptor, AppConfigService } from '@techgear/util';
 
@@ -27,6 +27,7 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideHttpClient(withInterceptors([httpErrorInterceptor, authInterceptor])),
     provideTokenStorage(),
+    provideProductsStorage(),
     {
       provide: AUTH_API_BASE_URL,
       useFactory: () => inject(AppConfigService).apiBaseUrl,

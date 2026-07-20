@@ -1,0 +1,18 @@
+[     685ms] [LOG] [AppConfig] Config loaded @ http://localhost:4200/chunk-MDURRAR3.js:25
+[     698ms] [LOG] Angular is running in development mode. @ http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/chunk-3ZJLE2WT.js?v=c90bc350:10730
+[     846ms] [ERROR] ERROR ɵNotFound: NG0201: No provider found for `InjectionToken PRODUCTS_STORAGE`. Source: Environment Injector. Path: _ShopShellFacade -> SignalStore -> InjectionToken PRODUCTS_STORAGE. Find more at https://v21.angular.dev/errors/NG0201
+    at createRuntimeError (http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/chunk-UMXB776N.js?v=c90bc350:1204:17)
+    at NullInjector.get (http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/chunk-UMXB776N.js?v=c90bc350:1476:21)
+    at R3Injector.get (http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/chunk-UMXB776N.js?v=c90bc350:1799:27)
+    at R3Injector.get (http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/chunk-UMXB776N.js?v=c90bc350:1799:27)
+    at R3Injector.retrieve (http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/chunk-UMXB776N.js?v=c90bc350:1709:19)
+    at injectInjectorOnly (http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/chunk-UMXB776N.js?v=c90bc350:1272:35)
+    at ɵɵinject (http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/chunk-UMXB776N.js?v=c90bc350:1284:59)
+    at inject2 (http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/chunk-UMXB776N.js?v=c90bc350:1293:10)
+    at http://localhost:4200/chunk-5QRCZ6PF.js:217:70
+    at http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/@ngrx_signals.js?v=c90bc350:362:21 @ http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/chunk-UMXB776N.js?v=c90bc350:3162
+[   24137ms] [LOG] [AppConfig] Config loaded @ http://localhost:4200/chunk-SSJCXN3V.js:26
+[   24148ms] [LOG] Angular is running in development mode. @ http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/chunk-3ZJLE2WT.js?v=c90bc350:10730
+[   25580ms] [LOG] NG0751: Angular has detected that this application contains `@defer` blocks and the hot module replacement (HMR) mode is enabled. All `@defer` block dependencies will be loaded eagerly. Find more at https://v21.angular.dev/errors/NG0751 @ http://localhost:4200/@fs/mnt/data/lrangela-repos/techgear-inventory-pro/.angular/cache/21.1.5/shop-web/vite/deps/chunk-3ZJLE2WT.js?v=c90bc350:10730
+[   29046ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4200/@vite/client:864
+[   29052ms] [ERROR] Creating a worker from 'blob:http://localhost:4200/a0a3f396-0e4a-4642-a042-c2f874b73c7e' violates the following Content Security Policy directive: "script-src 'self'". Note that 'worker-src' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked. @ http://localhost:4200/@vite/client:934

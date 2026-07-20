@@ -66,6 +66,13 @@ async function mockSharedAuth(page: Page): Promise<void> {
       refreshToken: 'playwright-refresh-token',
     });
   });
+
+  await page.route(/(https:\/\/dummyjson\.com|\/api)\/products\/\d+$/, async (route) => {
+    const url = route.request().url();
+    const id = parseInt(url.split('/').pop() || '1', 10);
+    const product = demoProducts.find((p) => p.id === id) || demoProducts[0];
+    await fulfillJson(route, product);
+  });
 }
 
 export async function mockShopApi(page: Page): Promise<void> {

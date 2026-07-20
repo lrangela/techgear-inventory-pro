@@ -10,7 +10,7 @@
     class="tg-flex tg-flex-col tg-gap-4 tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-6 sm:tg-flex-row sm:tg-items-center sm:tg-justify-between"
   >
     <div>
-      <h2 class="tg-text-2xl tg-font-semibold tg-text-slate-900">{{ isNew ? 'New Product' : 'Edit Product' }}</h2>
+      <h2 class="tg-text-2xl tg-font-semibold tg-text-slate-900">{{ isNew() ? 'New Product' : 'Edit Product' }}</h2>
       <p class="tg-mt-1 tg-text-sm tg-text-slate-500">Update the main product information.</p>
     </div>
     <a
@@ -34,7 +34,7 @@
     <p class="tg-text-sm tg-font-medium tg-text-slate-700">Loading product details...</p>
     <p class="tg-mt-2 tg-text-xs tg-text-slate-500">Please wait while the form is populated.</p>
   </div>
-  } @else if (!isNew && selectedError()) {
+  } @else if (!isNew() && selectedError()) {
   <div class="tg-rounded-2xl tg-border tg-border-rose-200 tg-bg-rose-50 tg-p-4 tg-text-sm tg-text-rose-700">
     Unable to load the product details. Please return to the list and try again.
   </div>
@@ -110,7 +110,7 @@
     </div>
 
     <div class="tg-flex tg-justify-end tg-gap-3 tg-border-t tg-border-slate-100 tg-pt-4">
-      @if (!isNew) {
+      @if (!isNew()) {
       <button
         type="button"
         (click)="onDelete()"
