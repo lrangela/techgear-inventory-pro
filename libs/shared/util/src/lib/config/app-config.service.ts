@@ -7,6 +7,11 @@ export interface AppConfig {
   authMode: 'mock' | 'remote';
 }
 
+const FALLBACK_CONFIG: AppConfig = {
+  apiBaseUrl: 'https://dummyjson.com',
+  authMode: 'mock',
+};
+
 @Injectable({ providedIn: 'root' })
 export class AppConfigService {
   private readonly http = inject(HttpClient);
@@ -23,6 +28,9 @@ export class AppConfigService {
       if (typeof ngDevMode !== 'undefined' && ngDevMode) {
         console.log('[AppConfig] Config loaded');
       }
+    }).catch((err: unknown) => {
+      console.error('[AppConfig] Failed to load config, using fallback:', err);
+      this.config = { ...FALLBACK_CONFIG };
     });
   }
 

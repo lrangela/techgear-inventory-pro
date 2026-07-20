@@ -6,7 +6,7 @@
 
 ## Architecture Overview
 
-**TechGear Inventory Pro** es una plataforma B2B de comercio electrónico y control de almacenes. La arquitectura está diseñada en un monorepo modular Nx que desacopla la aplicación pública de catálogo del panel de control operativo, garantizando una única fuente de verdad para el dominio del negocio.
+**TechGear Inventory Pro** es una plataforma B2B de comercio electrónico y control de almacenes de alto rendimiento. La arquitectura está diseñada en un monorepo modular Nx que desacopla la aplicación pública de catálogo del panel de control operativo, garantizando una única fuente de verdad para el dominio del negocio.
 
 ```mermaid
 graph TD
@@ -18,17 +18,20 @@ graph TD
     subgraph libs [Libraries Layer]
         SharedUI["libs/shared/ui (Design System)"]
         DataAccess["libs/shared/data-access (API Connection)"]
+        SharedUtil["libs/shared/util (Core Logic & Storage)"]
     end
     
     ShopWeb -->|1. Imports Styles & Core Components| SharedUI
     AdminPanel -->|1. Imports Styles & Core Components| SharedUI
     ShopWeb -->|2. Queries catalog & inventory data| DataAccess
     AdminPanel -->|2. Mutates inventory stock| DataAccess
+    DataAccess -->|3. Decoupled Helpers & Normalizers| SharedUtil
     
     style ShopWeb fill:#f9f,stroke:#333,stroke-width:2px
     style AdminPanel fill:#dfd,stroke:#333,stroke-width:2px
     style SharedUI fill:#ffc,stroke:#333,stroke-width:2px
     style DataAccess fill:#bbf,stroke:#333,stroke-width:2px
+    style SharedUtil fill:#fdb,stroke:#333,stroke-width:2px
 ```
 
 ### Separación de Aplicaciones
@@ -36,40 +39,40 @@ graph TD
 - `admin-panel`: Panel operativo privado para la actualización de stock, almacenes y permisos de usuario.
 
 ### Reutilización de Código
-Ambas aplicaciones comparten componentes atómicos del sistema de diseño Tailwind CSS expuestos en `@techgear/shared-ui` e interfaces de datos unificadas expuestas en `@techgear/data-access`.
+Ambas aplicaciones comparten componentes del sistema de diseño Tailwind CSS expuestos en `@techgear/ui` e interfaces de datos unificadas expuestas en `@techgear/data-access`.
 
 ### Límites (Boundaries)
 Estrictamente vigilados en tiempo de compilación. Ninguna de las dos aplicaciones puede importar dependencias internas de la otra. Toda comunicación o compartición se realiza exclusivamente a través de los contratos de las librerías compartidas en `libs/`.
 
 ---
 
-## Architecture Decisions
+## Architectural Decisions Record (ADR)
 
-### RBAC Strategy
-*   **Context**: Las operaciones de inventario en `admin-panel` son críticas y no deben ser accesibles para usuarios ordinarios de la tienda.
-*   **Decision**: Implementar guardias funcionales seguros (`RoleGuard`) que interceptan la activación de rutas, decodifican la carga útil del JWT y validan los roles requeridos en caliente.
-*   **Trade-offs**: Los cambios de roles en la base de datos no se ven reflejados de inmediato en la sesión del cliente hasta que expire el token de sesión o se intente realizar una mutación HTTP interceptada por el backend.
+### 1. Angular Zoneless & Signal-Driven State Management
+*   **Contexto**: El framework de cambio de detección clásico basado en `Zone.js` introduce sobrecarga de rendimiento y dificulta la depuración de flujos asíncronos complejos.
+*   **Decisión**: Adoptar Angular 21 con **Zoneless Change Detection** (`provideZonelessChangeDetection()`) y delegar la reactividad en **Signals** nativas de Angular. El estado global y del componente se gestiona mediante `@ngrx/signals` y componentes standalone puros. Se utiliza **`linkedSignal`** para resetear de forma limpia y reactiva estados temporales (como mensajes de éxito en formularios) en cuanto cambian sus dependencias.
+*   **Trade-offs**: Requiere disciplina estricta de desarrollo (evitar lecturas imperativas fuera del grafo reactivo y asegurar que todas las vistas dependan únicamente de señales evaluadas).
 
-### Authentication Strategy
-*   **Context**: Los tokens de autenticación JWT se almacenan del lado del cliente y deben protegerse contra ataques XSS de inyección de código.
-*   **Decision**: *Pendiente de implementación o evidencia* (Los tokens se guardan actualmente en almacenamiento local; se debe migrar el flujo para utilizar cookies firmadas con atributos `HttpOnly`, `Secure` y `SameSite` para bloquear el acceso de scripts maliciosos XSS).
-*   **Trade-offs**: Usar cookies seguras añade complejidad CORS en llamadas cross-origin y requiere un control estricto de subdominios.
+### 2. Inversión de Dependencias en Almacenamiento (SSR-Safe)
+*   **Contexto**: La persistencia local (localStorage/sessionStorage) acopla los componentes al navegador y provoca fallos catastróficos por excepciones de referencia de objeto (`ReferenceError`) en entornos Server-Side Rendering (SSR).
+*   **Decisión**: Abstraer la persistencia física del navegador mediante la interfaz `ProductsStorage` y el token de inyección `PRODUCTS_STORAGE`. La implementación por defecto (`LocalStorageProductsStorage`) encapsula llamadas seguras con fallback en memoria (`Map`).
+*   **Trade-offs**: Los datos en memoria no se conservan en refrescos de página en SSR, pero se garantiza la hidratación inicial del HTML sin errores y un entorno de tests unitarios independiente y paralelizable.
 
-### Zod Validation
-*   **Context**: Las llamadas HTTP pueden recibir datos corruptos o con esquemas modificados del backend, lo que rompería el flujo reactivo de las Signals en el frontend.
-*   **Decision**: Validar de forma estricta los datos en runtime mediante esquemas de Zod antes de propagarlos al estado.
-*   **Trade-offs**: Incrementa el bundle size inicial de la capa de datos al cargar el parser de Zod en el navegador del cliente.
+### 3. Validación y Normalización estricta de Datos (Zod Boundaries)
+*   **Contexto**: DummyJSON y APIs externas presentan payload inestables (ej. categorías devueltas a veces como strings y otras como objetos) y la carga de datos corruptos puede corromper el estado global de la aplicación.
+*   **Decisión**: Validar todos los datos externos (API y localStorage persistido) en la frontera mediante esquemas de **Zod** (`safeParse`), y normalizar las estructuras de datos antes de inyectarlas en los stores locales.
+*   **Trade-offs**: Añade un pequeño paso de procesamiento y validación en tiempo de ejecución al inicializar datos locales o recibir respuestas HTTP.
 
-### Signal State Management
-*   **Context**: El boilerplate clásico de Redux (NGRX Store) ralentiza el desarrollo de consolas y añade complejidad de Zone.js innecesaria.
-*   **Decision**: Utilizar `@ngrx/signals` para la gestión de estados globales y de componente.
-*   **Trade-offs**: Menor disponibilidad de herramientas avanzadas de depuración en comparación con Redux DevTools.
+### 4. Auth Semaphorization & SSR-Safe Refresh Gate
+*   **Contexto**: En entornos de servidor (SSR), el uso de variables globales de módulo para guardar estados de refresco (`let isRefreshing = false`) provoca condiciones de carrera y fugas de tokens de sesión entre peticiones de diferentes usuarios concurrentes.
+*   **Decisión**: Encapsular el estado del refresco y el semáforo RxJS en un servicio inyectable con ámbito de aplicación (`AuthRefreshGate`). Esto asegura que el estado del interceptor esté aislado en el contenedor DI por petición de renderizado en el servidor.
+*   **Trade-offs**: Requiere proveer correctamente los interceptores funcionales integrados en el árbol DI.
 
 ---
 
 ## Testing Strategy
-- **Unit testing**: Pruebas unitarias sobre servicios, interceptores y componentes lógicos utilizando Vitest y compilación ultrarrápida con SWC.
-- **E2E**: Pruebas de integración funcional mediante Playwright simulando el flujo de checkout completo y el descuento inmediato del stock en la consola administrativa.
+- **Unit testing**: Pruebas unitarias sobre servicios, interceptores y componentes utilizando Vitest y SWC. Los tests de storage se mockean mediante `vi.mock('@techgear/util')` para asegurar que corren en entornos puros sin DOM.
+- **E2E**: Pruebas de integración y de interfaz de usuario con Playwright, simulando flujos reales de stock y autenticación.
 
 ---
 
@@ -79,22 +82,13 @@ El pipeline en GitHub Actions aprovecha el grafo de dependencias de Nx.
 2. `typecheck`: Compilación estricta y comprobación de tipos de TypeScript.
 3. `lint`: Análisis estático y verificación de ESLint en todos los proyectos modificados del monorepo.
 4. `test`: Ejecución de tests unitarios rápidos mediante Vitest.
-5. `build`: Compilación final de los artefactos de producción.
-
----
-
-## Security Practices
-- **Guards**: Bloqueo de rutas desautorizadas basados en roles de usuario.
-- **Authentication**: Autenticación centralizada JWT.
-- **Authorization**: *Pendiente de implementación o evidencia* (Es necesario añadir restricciones de visualización de botones y componentes de acción basados en permisos finos y no solo en roles de usuario globales).
+5. `build`: Compilación final de los la aplicación para producción.
 
 ---
 
 ## Deployment
-El despliegue está automatizado mediante un pipeline secundario de GitHub Actions (`deploy-pages.yml`) que reacciona a la finalización exitosa de las pruebas de integración (`CI`) en la rama `master`:
-
-1.  **Configuración del Entorno**: Crea dinámicamente un recurso `config.json` inyectando las variables de configuración de las APIs B2B de producción.
-2.  **Compilación Monorepo**: Ejecuta la compilación de producción para `@techgear/shop-web` y `@techgear/admin-panel` asignando de forma diferenciada sus subrutas mediante el parámetro `--base-href`.
-3.  **Ensamblado del Sitio**: Unifica los bundles dentro del directorio de staging `site/`, anidando la consola administrativa en la ruta `site/admin/`.
-4.  **Enrutamiento Estático (404 Fallbacks)**: Copia el archivo `index.html` como `404.html` en el root y en el directorio administrativo para prevenir fallos de recarga del enrutador de Angular.
-5.  **Entrega CDN**: Publica el compilado en **GitHub Pages** utilizando los builders oficiales de GitHub (`actions/deploy-pages`).
+El despliegue está automatizado mediante un pipeline de GitHub Actions (`deploy-pages.yml`):
+1.  **Configuración del Entorno**: Crea el recurso `config.json` con la URL de producción y fallback de contingencia en `AppConfigService`.
+2.  **Compilación**: Compila `@techgear/shop-web` y `@techgear/admin-panel` especificando sus base-href correspondientes.
+3.  **Enrutamiento Estático**: Copia `index.html` a `404.html` para soportar recargas en servidores estáticos (GitHub Pages).
+4.  **Entrega CDN**: Publica el bundle en **GitHub Pages** utilizando los builders oficiales de GitHub.

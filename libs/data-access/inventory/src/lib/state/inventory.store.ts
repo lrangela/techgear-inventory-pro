@@ -9,6 +9,13 @@ interface InventoryState {
     movements: StockMovement[];
 }
 
+export interface StockBatchMovement {
+    productId: number;
+    productName: string;
+    delta: number;
+    reason?: string;
+}
+
 const MAX_STORED_MOVEMENTS = 500;
 
 const initialState: InventoryState = {
@@ -38,6 +45,34 @@ export const InventoryStore = signalStore(
             };
 
             const newMovements = [...store.movements(), movement].slice(-MAX_STORED_MOVEMENTS);
+
+            patchState(store, { items: newItems, movements: newMovements });
+            storage.save({ items: newItems, movements: newMovements });
+        },
+        adjustStockBatch(movements: StockBatchMovement[]) {
+            const itemsMap = new Map(store.items().map((i: InventoryItem) => [i.productId, i]));
+            const newMovementsList: StockMovement[] = [];
+
+            for (const m of movements) {
+                const existing = itemsMap.get(m.productId);
+                const newStock = Math.max(0, (existing?.stock ?? 0) + m.delta);
+                const updatedItem: InventoryItem = existing
+                    ? { ...existing, stock: newStock, lastUpdated: new Date() }
+                    : { productId: m.productId, productName: m.productName, stock: newStock, lastUpdated: new Date() };
+                itemsMap.set(m.productId, updatedItem);
+
+                newMovementsList.push({
+                    id: createId(),
+                    productId: m.productId,
+                    productName: m.productName,
+                    delta: m.delta,
+                    timestamp: new Date(),
+                    reason: m.reason,
+                });
+            }
+
+            const newItems = Array.from(itemsMap.values());
+            const newMovements = [...store.movements(), ...newMovementsList].slice(-MAX_STORED_MOVEMENTS);
 
             patchState(store, { items: newItems, movements: newMovements });
             storage.save({ items: newItems, movements: newMovements });
@@ -96,13 +131,6 @@ export const InventoryStore = signalStore(
 
             patchState(store, { items: nextItems });
             storage.save({ items: nextItems, movements: store.movements() });
-        },
-        seedIfEmpty(products: { id: number; title: string }[], defaultStock = 5) {
-            if (store.items().length > 0) {
-                return;
-            }
-
-            this.seedMissingProducts(products, defaultStock);
         },
         loadFromStorage() {
             const data = storage.load();

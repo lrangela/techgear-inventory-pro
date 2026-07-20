@@ -67,11 +67,32 @@ function humanizeSlug(value: string): string {
     .join(' ');
 }
 
-function mapCategory(slug: string | undefined): ProductCategory | null {
-  if (!slug) {
+function normalizeCategoryField(
+  category: string | { slug: string; name: string; image?: string } | undefined
+): ProductCategory | null {
+  if (!category) {
     return null;
   }
 
+  if (typeof category === 'string') {
+    return {
+      id: category,
+      name: humanizeSlug(category),
+      image: null,
+    };
+  }
+
+  return {
+    id: category.slug,
+    name: category.name,
+    image: category.image ?? null,
+  };
+}
+
+export function mapCategoryFromSlug(slug: string | undefined): ProductCategory | null {
+  if (!slug) {
+    return null;
+  }
   return {
     id: slug,
     name: humanizeSlug(slug),
@@ -79,8 +100,14 @@ function mapCategory(slug: string | undefined): ProductCategory | null {
   };
 }
 
-export function mapCategoryFromSlug(slug: string | undefined): ProductCategory | null {
-  return mapCategory(slug);
+export function mapCategoryFromDto(
+  dto: { slug: string; name: string; image?: string }
+): ProductCategory {
+  return {
+    id: dto.slug,
+    name: dto.name,
+    image: dto.image ?? null,
+  };
 }
 
 function normalizeImages(dto: ProductDto): string[] {
@@ -96,7 +123,7 @@ function normalizeImages(dto: ProductDto): string[] {
 }
 
 export function mapProduct(dto: ProductDto): Product {
-  const category = mapCategory(dto.category);
+  const category = normalizeCategoryField(dto.category);
 
   return {
     id: dto.id,
@@ -123,7 +150,7 @@ export function createProductFromRequest(
     price: payload.price,
     description: payload.description,
     images: payload.images?.filter((image) => isSafeProductImageUrl(image)) ?? [],
-    category: mapCategory(payload.category),
+    category: normalizeCategoryField(payload.category),
     categoryId: payload.category ?? null,
   };
 }
@@ -138,7 +165,7 @@ export function applyProductUpdate(
     price: patch.price ?? current.price,
     description: patch.description ?? current.description,
     images: patch.images?.filter((image) => isSafeProductImageUrl(image)) ?? current.images,
-    category: patch.category !== undefined ? mapCategory(patch.category) : current.category,
+    category: patch.category !== undefined ? normalizeCategoryField(patch.category) : current.category,
     categoryId: patch.category ?? current.categoryId,
   };
 }

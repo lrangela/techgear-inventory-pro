@@ -35,22 +35,6 @@ describe('InventoryStore', () => {
     expect(storageMock.save).toHaveBeenCalledTimes(1);
   });
 
-  it('seedIfEmpty should populate inventory only when there are no items', () => {
-    const store = runInInjectionContext(injector, () => injector.get(InventoryStore));
-
-    store.seedIfEmpty([{ id: 10, title: 'Keyboard' }], 5);
-    store.seedIfEmpty([{ id: 11, title: 'Mouse' }], 5);
-
-    expect(store.items()).toEqual([
-      expect.objectContaining({
-        productId: 10,
-        productName: 'Keyboard',
-        stock: 5,
-      }),
-    ]);
-    expect(storageMock.save).toHaveBeenCalledTimes(1);
-  });
-
   it('syncWithCatalog should keep only catalog products and preserve existing stock', () => {
     const store = runInInjectionContext(injector, () => injector.get(InventoryStore));
 

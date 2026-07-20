@@ -14,6 +14,7 @@ export interface AppError {
   kind: AppErrorKind;
   status?: number;
   source?: string;
+  details?: unknown;
   timestamp: string;
 }
 
@@ -24,6 +25,7 @@ export class AppErrorModel extends Error implements AppError {
   readonly kind: AppErrorKind;
   readonly status?: number;
   readonly source?: string;
+  readonly details?: unknown;
   readonly timestamp: string;
 
   constructor(data: AppError) {
@@ -35,6 +37,7 @@ export class AppErrorModel extends Error implements AppError {
     this.kind = data.kind;
     this.status = data.status;
     this.source = data.source;
+    this.details = data.details;
     this.timestamp = data.timestamp;
   }
 }
@@ -96,6 +99,7 @@ export function normalizeAppError(error: unknown): AppErrorModel {
         retriable: false,
         kind: 'http4xx',
         status: error.status,
+        details: error.error,
         timestamp,
       });
     }
@@ -114,14 +118,12 @@ export function normalizeAppError(error: unknown): AppErrorModel {
   }
 
   if (error instanceof Error) {
-    const isAuthMessage = /auth|token|session|credential/i.test(error.message);
-
     return new AppErrorModel({
-      code: isAuthMessage ? 'AUTH_ERROR' : 'UNKNOWN_ERROR',
+      code: 'UNKNOWN_ERROR',
       message: error.message || 'Unexpected error.',
-      severity: isAuthMessage ? 'warning' : 'error',
-      retriable: !isAuthMessage,
-      kind: isAuthMessage ? 'auth' : 'unknown',
+      severity: 'error',
+      retriable: false,
+      kind: 'unknown',
       timestamp,
     });
   }

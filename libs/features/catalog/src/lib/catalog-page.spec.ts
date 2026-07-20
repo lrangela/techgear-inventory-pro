@@ -50,7 +50,7 @@ describe('CatalogPageComponent', () => {
             items: signal([{ id: 'audio', slug: 'audio', name: 'Audio' }]),
             status: signal<'resolved'>('resolved'),
             error: signal<null>(null),
-            loadList: loadCategories,
+            ensureLoaded: loadCategories,
           },
         },
         {

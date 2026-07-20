@@ -48,8 +48,6 @@ describe('InventoryDashboardComponent logic', () => {
     });
 
     expect(component.formError()).toBe('Insufficient stock. Current available: 2.');
-
-    component.ngOnDestroy();
   });
 
   it('records a movement when the form is valid', () => {
@@ -98,7 +96,5 @@ describe('InventoryDashboardComponent logic', () => {
 
     expect(adjustStock).toHaveBeenCalledWith(10, 'Keyboard', -3, 'Sale');
     expect(component.successMessage()).toBe('Movement recorded successfully.');
-
-    component.ngOnDestroy();
   });
 });

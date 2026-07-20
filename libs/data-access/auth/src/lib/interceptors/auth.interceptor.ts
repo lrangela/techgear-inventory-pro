@@ -3,7 +3,7 @@ import {
   HttpInterceptorFn,
   HttpRequest,
 } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { from, throwError, BehaviorSubject } from 'rxjs';
 import { catchError, switchMap, filter, take } from 'rxjs/operators';
 import { AuthStore } from '../state/auth.store';
@@ -15,12 +15,27 @@ const isAuthEndpoint = (request: HttpRequest<unknown>) => {
   );
 };
 
-// Variable persistente entre llamadas al interceptor funcional
-let isRefreshing = false;
-const refreshTokenSubject = new BehaviorSubject<string | null>(null);
+@Injectable({ providedIn: 'root' })
+export class AuthRefreshGate {
+  private isRefreshing = false;
+  private readonly refreshTokenSubject = new BehaviorSubject<string | null>(null);
+
+  getIsRefreshing(): boolean {
+    return this.isRefreshing;
+  }
+
+  setIsRefreshing(value: boolean): void {
+    this.isRefreshing = value;
+  }
+
+  getSubject(): BehaviorSubject<string | null> {
+    return this.refreshTokenSubject;
+  }
+}
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const authStore = inject(AuthStore);
+  const refreshGate = inject(AuthRefreshGate);
   const accessToken = authStore.accessToken();
 
   const addToken = (req: HttpRequest<unknown>, token: string) => {
@@ -42,27 +57,27 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
         return throwError(() => error);
       }
 
-      if (!isRefreshing) {
-        isRefreshing = true;
-        refreshTokenSubject.next(null);
+      if (!refreshGate.getIsRefreshing()) {
+        refreshGate.setIsRefreshing(true);
+        refreshGate.getSubject().next(null);
 
         return from(authStore.refresh()).pipe(
           switchMap((newToken) => {
-            isRefreshing = false;
+            refreshGate.setIsRefreshing(false);
             if (!newToken) {
               return throwError(() => error);
             }
-            refreshTokenSubject.next(newToken);
+            refreshGate.getSubject().next(newToken);
             return next(addToken(request, newToken));
           }),
           catchError((refreshError) => {
-            isRefreshing = false;
+            refreshGate.setIsRefreshing(false);
             return throwError(() => refreshError);
           })
         );
       } else {
         // Semaforización: esperar a que el primer refresco termine
-        return refreshTokenSubject.pipe(
+        return refreshGate.getSubject().pipe(
           filter((token) => token !== null),
           take(1),
           switchMap((token) => {

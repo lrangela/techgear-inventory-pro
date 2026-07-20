@@ -34,9 +34,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   readonly product = this.productsStore.selected;
   readonly error = this.productsStore.selectedError;
   readonly isLoading = computed(
-    () =>
-      this.productsStore.selectedStatus() === 'loading' ||
-      this.productsStore.selectedStatus() === 'reloading'
+    () => this.productsStore.selectedStatus() === 'loading'
   );
 
   private readonly productId = toSignal(

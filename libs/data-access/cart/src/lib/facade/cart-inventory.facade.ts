@@ -110,9 +110,14 @@ export class CartInventoryFacade {
       return false;
     }
 
-    for (const item of items) {
-      this.inventoryStore.adjustStock(item.productId, item.title, item.quantity, 'Cart cleared');
-    }
+    this.inventoryStore.adjustStockBatch(
+      items.map((item) => ({
+        productId: item.productId,
+        productName: item.title,
+        delta: item.quantity,
+        reason: 'Cart cleared',
+      }))
+    );
 
     this.cartStore.clear();
     return true;

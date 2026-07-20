@@ -9,9 +9,10 @@ export const roleGuard: CanActivateFn = (
   return (async () => {
   const authStore = inject(AuthStore);
   const router = inject(Router);
-  const roles = (route.data?.['roles'] as string[] | undefined) ?? [];
-  const unauthorizedRedirectTo =
-    (route.data?.['unauthorizedRedirectTo'] as string | undefined) ?? null;
+  const rawRoles = route.data?.['roles'];
+  const roles = Array.isArray(rawRoles) ? (rawRoles.filter((r: unknown) => typeof r === 'string') as string[]) : [];
+  const rawRedirect = route.data?.['unauthorizedRedirectTo'];
+  const unauthorizedRedirectTo = typeof rawRedirect === 'string' ? rawRedirect : null;
 
   if (!authStore.isAuthenticated()) {
     return router.parseUrl('/login');

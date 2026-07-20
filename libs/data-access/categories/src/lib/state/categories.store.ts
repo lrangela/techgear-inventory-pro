@@ -16,7 +16,11 @@ export class CategoriesStore {
   readonly status = computed(() => this.listResource.status());
   readonly error = computed(() => this.listResource.error());
 
-  loadList(): void {
+  ensureLoaded(force = false): void {
+    const currentStatus = this.listResource.status();
+    if (!force && (currentStatus === 'resolved' || currentStatus === 'loading')) {
+      return;
+    }
     this.listResource.reload();
   }
 }

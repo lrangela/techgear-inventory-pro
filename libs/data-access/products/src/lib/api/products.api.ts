@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, InjectionToken, inject } from '@angular/core';
 import { map } from 'rxjs/operators';
 import {
+  CategoryListDtoSchema,
   ProductDeleteResponseSchema,
   ProductDtoSchema,
   ProductsListDtoSchema,
@@ -11,6 +12,7 @@ import {
   ProductsListResult,
   ProductUpdateRequest,
   ProductsListParams,
+  mapCategoryFromDto,
   mapProduct,
   mapProducts,
 } from '../models/products.models';
@@ -41,6 +43,17 @@ export class ProductsApiService {
             skip: dto.skip,
             limit: dto.limit,
           } satisfies ProductsListResult;
+        })
+      );
+  }
+
+  getCategories() {
+    return this.http
+      .get<unknown>(`${this.baseUrl}/products/categories`)
+      .pipe(
+        map((response) => {
+          const dtos = parseWithZod(CategoryListDtoSchema, response, 'products.categories');
+          return dtos.map(mapCategoryFromDto);
         })
       );
   }

@@ -4,6 +4,7 @@
   "peerDependencies": {
     "@angular/common": "^21.1.0",
     "@angular/core": "^21.1.0",
+    "@ngrx/signals": "^21.0.0",
     "@techgear/util": "*",
     "rxjs": "~7.8.0",
     "zod": "^4.3.6"

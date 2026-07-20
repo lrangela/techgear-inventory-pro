@@ -1,16 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  Signal,
   computed,
   effect,
   inject,
-  OnDestroy,
+  linkedSignal,
   OnInit,
-  signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
 import { InventoryStore } from '@techgear/data-access-inventory';
 import { ProductsStore } from '@techgear/data-access/products';
 
@@ -30,12 +30,11 @@ type ReasonPreset =
   templateUrl: './inventory-dashboard.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class InventoryDashboardComponent implements OnInit, OnDestroy {
+export class InventoryDashboardComponent implements OnInit {
   private readonly maxRenderedMovements = 150;
   readonly inventoryStore = inject(InventoryStore);
   readonly productsStore = inject(ProductsStore);
   private readonly fb = inject(FormBuilder);
-  private formValueSub?: Subscription;
 
   readonly movementForm = this.fb.nonNullable.group({
     selectedProductId: 0,
@@ -45,8 +44,61 @@ export class InventoryDashboardComponent implements OnInit, OnDestroy {
     reasonOther: '',
   });
 
-  readonly formError = signal<string | null>(null);
-  readonly successMessage = signal<string | null>(null);
+  private readonly formValue: Signal<{
+    selectedProductId: number;
+    movementType: MovementType;
+    quantity: number;
+    reasonPreset: '' | ReasonPreset;
+    reasonOther: string;
+  }> = toSignal(
+    this.movementForm.valueChanges,
+    { initialValue: this.movementForm.getRawValue() }
+  ) as Signal<{
+    selectedProductId: number;
+    movementType: MovementType;
+    quantity: number;
+    reasonPreset: '' | ReasonPreset;
+    reasonOther: string;
+  }>;
+
+  readonly successMessage = linkedSignal({
+    source: this.formValue,
+    computation: () => null as string | null,
+  });
+
+  readonly formError = computed(() => {
+    const val = this.formValue();
+    const selectedProductId = val.selectedProductId;
+    const movementType = val.movementType;
+    const quantity = val.quantity;
+    const reasonPreset = val.reasonPreset;
+    const reasonOther = val.reasonOther;
+
+    if (!selectedProductId) {
+      return 'Select a product.';
+    }
+
+    if (!quantity || quantity < 1) {
+      return 'Quantity must be greater than zero.';
+    }
+
+    if (!reasonPreset) {
+      return 'Select a reason.';
+    }
+
+    if (reasonPreset === 'other' && !reasonOther?.trim()) {
+      return 'Describe the reason when selecting "Other".';
+    }
+
+    if (movementType === 'out') {
+      const currentStock = this.inventoryStore.getStock(selectedProductId);
+      if (quantity > currentStock) {
+        return `Insufficient stock. Current available: ${currentStock}.`;
+      }
+    }
+
+    return null;
+  });
 
   readonly totalProducts = computed(() => this.inventoryStore.items().length);
   readonly totalMovements = computed(() => this.inventoryStore.movements().length);
@@ -62,7 +114,7 @@ export class InventoryDashboardComponent implements OnInit, OnDestroy {
       .reverse()
   );
   readonly hasTrimmedMovements = computed(
-    () => this.totalMovements() > this.recentMovements().length
+    () => this.totalMovements() > this.maxRenderedMovements
   );
   readonly selectableProducts = computed(() =>
     this.productsStore
@@ -91,7 +143,7 @@ export class InventoryDashboardComponent implements OnInit, OnDestroy {
     effect(() => {
       const products = this.productsStore.items();
       const status = this.productsStore.listStatus();
-      const isLoading = status === 'loading' || status === 'reloading';
+      const isLoading = status === 'loading';
 
       if (isLoading || products.length === 0) {
         return;
@@ -104,57 +156,40 @@ export class InventoryDashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.inventoryStore.loadFromStorage();
     this.productsStore.ensureListLoaded({ limit: 100, offset: 0 });
-    this.formValueSub = this.movementForm.valueChanges.subscribe(() => {
-      this.successMessage.set(null);
-      this.formError.set(this.buildFormError());
-    });
-    this.formError.set(this.buildFormError());
-  }
-
-  ngOnDestroy(): void {
-    this.formValueSub?.unsubscribe();
   }
 
   previewDelta(): number {
-    const { movementType, quantity } = this.movementForm.getRawValue();
-    return movementType === 'in' ? quantity : -quantity;
+    const val = this.formValue();
+    return val.movementType === 'in' ? val.quantity : -val.quantity;
   }
 
   selectedStock(): number | null {
-    const { selectedProductId } = this.movementForm.getRawValue();
-    if (!selectedProductId) {
+    const val = this.formValue();
+    if (!val.selectedProductId) {
       return null;
     }
-    return this.inventoryStore.getStock(selectedProductId);
+    return this.inventoryStore.getStock(val.selectedProductId);
   }
 
   onAdjustStockSubmit(): void {
-    const formError = this.buildFormError();
-    this.formError.set(formError);
+    const errorVal = this.formError();
     this.successMessage.set(null);
 
-    if (formError) {
+    if (errorVal) {
       return;
     }
 
-    const {
-      selectedProductId,
-      movementType,
-      quantity,
-      reasonPreset,
-      reasonOther,
-    } = this.movementForm.getRawValue();
-
+    const val = this.formValue();
     const resolvedProduct = this.selectableProducts().find(
-      (item) => item.productId === selectedProductId
+      (item) => item.productId === val.selectedProductId
     );
-    const productId = selectedProductId;
+    const productId = val.selectedProductId;
     const productName = resolvedProduct?.productName ?? '';
-    const delta = movementType === 'in' ? quantity : -quantity;
+    const delta = val.movementType === 'in' ? val.quantity : -val.quantity;
     const reason =
-      reasonPreset === 'other'
-        ? reasonOther.trim()
-        : this.reasonLabels[reasonPreset as Exclude<ReasonPreset, 'other'>];
+      val.reasonPreset === 'other'
+        ? val.reasonOther.trim()
+        : this.reasonLabels[val.reasonPreset as Exclude<ReasonPreset, 'other'>];
 
     this.inventoryStore.adjustStock(
       productId,
@@ -170,41 +205,5 @@ export class InventoryDashboardComponent implements OnInit, OnDestroy {
       reasonOther: '',
     });
     this.successMessage.set('Movement recorded successfully.');
-    this.formError.set(this.buildFormError());
-  }
-
-  private buildFormError(): string | null {
-    const {
-      selectedProductId,
-      movementType,
-      quantity,
-      reasonPreset,
-      reasonOther,
-    } = this.movementForm.getRawValue();
-
-    if (!selectedProductId) {
-      return 'Select a product.';
-    }
-
-    if (!quantity || quantity < 1) {
-      return 'Quantity must be greater than zero.';
-    }
-
-    if (!reasonPreset) {
-      return 'Select a reason.';
-    }
-
-    if (reasonPreset === 'other' && !reasonOther.trim()) {
-      return 'Describe the reason when selecting "Other".';
-    }
-
-    if (movementType === 'out') {
-      const currentStock = this.inventoryStore.getStock(selectedProductId);
-      if (quantity > currentStock) {
-        return `Insufficient stock. Current available: ${currentStock}.`;
-      }
-    }
-
-    return null;
   }
 }

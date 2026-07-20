@@ -1,5 +1,27 @@
 import { z } from 'zod';
 
+export const CategoryDtoSchema = z
+  .object({
+    slug: z.string().min(1),
+    name: z.string().min(1),
+    url: z.string().optional(),
+    image: z.string().optional(),
+  })
+  .passthrough();
+
+export type CategoryDto = z.infer<typeof CategoryDtoSchema>;
+
+export const CategoryListDtoSchema = z.array(CategoryDtoSchema);
+
+const CategoryFieldSchema = z.union([
+  z.string().min(1),
+  z.object({
+    slug: z.string().min(1),
+    name: z.string().min(1),
+    image: z.string().optional(),
+  }).passthrough(),
+]).optional();
+
 export const ProductDtoSchema = z
   .object({
     id: z.number().int().positive('Product ID is invalid'),
@@ -8,7 +30,7 @@ export const ProductDtoSchema = z
     description: z.string().min(1, 'Product description is required'),
     images: z.array(z.string().url()).optional(),
     thumbnail: z.string().url().optional(),
-    category: z.string().min(1).optional(),
+    category: CategoryFieldSchema,
   })
   .passthrough();
 

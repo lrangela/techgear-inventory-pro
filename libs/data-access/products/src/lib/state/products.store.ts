@@ -1,8 +1,10 @@
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
+import { inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { of } from 'rxjs';
+import { z } from 'zod';
+import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
+import { computed } from '@angular/core';
 import { ProductsApiService } from '../api/products.api';
+import { PRODUCTS_STORAGE, ProductsStorage } from '../storage/products.storage';
 import {
   applyProductUpdate,
   createProductFromRequest,
@@ -13,322 +15,397 @@ import {
   ProductsListParams,
   ProductUpdateRequest,
 } from '../models/products.models';
+import { AppConfigService } from '@techgear/util';
 
 export type ProductsMutationStatus = 'idle' | 'pending' | 'error';
+export type MutationType = 'create' | 'update' | 'delete';
+
+export interface PendingMutation {
+  previousItem: Product | null;
+  mutationType: MutationType;
+}
+
 const PRODUCTS_LOCAL_STATE_KEY = 'techgear_products_local_state_v1';
 const MAX_PRODUCTS_LOCAL_STATE_BYTES = 200_000;
 const MAX_PERSISTED_PRODUCTS = 250;
 
-@Injectable({ providedIn: 'root' })
-export class ProductsStore {
-  private readonly api = inject(ProductsApiService);
+const CategoryCacheSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  image: z.string().nullable().optional(),
+}).nullable().optional();
 
-  private readonly listParams = signal<ProductsListParams | null>(null);
-  private readonly selectedId = signal<number | null>(null);
-  private readonly localItems = signal<Product[] | null>(null);
-  private readonly selectedOverride = signal<Product | null | undefined>(undefined);
-  private readonly pendingById = signal<Record<number, true>>({});
-  private readonly tempIdSeed = signal(-1);
-  private readonly mutationStatusState = signal<ProductsMutationStatus>('idle');
-  private readonly mutationErrorState = signal<string | null>(null);
+interface ProductsState {
+  items: Product[];
+  total: number;
+  skip: number;
+  limit: number;
+  listStatus: 'idle' | 'loading' | 'resolved' | 'error';
+  listError: string | null;
+  selectedId: number | null;
+  selected: Product | null;
+  selectedStatus: 'idle' | 'loading' | 'resolved' | 'error';
+  selectedError: string | null;
+  mutationStatus: ProductsMutationStatus;
+  mutationError: string | null;
+  pendingMutations: Record<number, PendingMutation>;
+  tempIdSeed: number;
+  listParams: ProductsListParams | null;
+}
 
-  constructor() {
-    this.loadLocalProjection();
+const initialState: ProductsState = {
+  items: [],
+  total: 0,
+  skip: 0,
+  limit: 0,
+  listStatus: 'idle',
+  listError: null,
+  selectedId: null,
+  selected: null,
+  selectedStatus: 'idle',
+  selectedError: null,
+  mutationStatus: 'idle',
+  mutationError: null,
+  pendingMutations: {},
+  tempIdSeed: -1,
+  listParams: null,
+};
 
-    effect(() => {
-      this.persistLocalProjection(this.localItems());
-    });
+function nextTempId(seed: number): number {
+  return seed - 1;
+}
+
+function formatMutationError(error: unknown): string {
+  if (error instanceof Error) {
+    return `Demo mode rollback: ${error.message}`;
   }
+  return 'Demo mode rollback: unable to persist product changes. Local state was reverted.';
+}
 
-  private readonly listResource = rxResource<ProductsListResult, ProductsListParams | null>({
-    params: () => this.listParams(),
-    defaultValue: { items: [], total: 0, skip: 0, limit: 0 },
-    stream: ({ params }) =>
-      params === null
-        ? of({ items: [], total: 0, skip: 0, limit: 0 })
-        : this.api.getProducts(params),
-  });
-
-  private readonly selectedResource = rxResource<Product | null, number | null>({
-    params: () => this.selectedId(),
-    defaultValue: null,
-    stream: ({ params }) =>
-      params === null ? of(null) : this.api.getProductById(params),
-  });
-
-  readonly items = computed(() => this.localItems() ?? this.listResource.value().items);
-  readonly total = computed(() => this.localItems()?.length ?? this.listResource.value().total);
-  readonly listStatus = computed(() => this.listResource.status());
-  readonly listError = computed(() => this.listResource.error());
-  readonly isLoading = this.listResource.isLoading;
-  readonly error = this.listResource.error;
-
-  readonly selected = computed(() => {
-    const id = this.selectedId();
-    if (id !== null) {
-      const localSelected = this.items().find((item) => item.id === id);
-      if (localSelected) {
-        return localSelected;
-      }
-    }
-
-    const override = this.selectedOverride();
-    return override === undefined ? this.selectedResource.value() : override;
-  });
-  readonly selectedStatus = computed(() => this.selectedResource.status());
-  readonly selectedError = computed(() => this.selectedResource.error());
-  readonly mutationStatus = computed(() => this.mutationStatusState());
-  readonly mutationError = computed(() => this.mutationErrorState());
-  readonly isDemoMode = computed(() => true);
-  readonly demoModeMessage = computed(
-    () =>
-      'Demo mode: CRUD calls use DummyJSON simulated mutations. Changes are optimistic and only persisted in local UI state.'
-  );
-  readonly hasPendingMutations = computed(
-    () => Object.keys(this.pendingById()).length > 0
-  );
-
-  setListParams(params: ProductsListParams): void {
-    this.listParams.set({ ...params });
-  }
-
-  loadList(params?: ProductsListParams): void {
-    this.listParams.set({ ...(params ?? {}) });
-  }
-
-  ensureListLoaded(params: ProductsListParams): void {
-    const currentParams = this.listParams();
-    const hasLocalProjection = this.localItems() !== null;
-    const hasResourceData = this.listStatus() === 'resolved';
-
-    if (currentParams && areSameParams(currentParams, params) && (hasLocalProjection || hasResourceData)) {
-      return;
-    }
-
-    this.loadList(params);
-  }
-
-  reloadList(): void {
-    this.listResource.reload();
-  }
-
-  loadOne(id: number): void {
-    this.selectedId.set(id);
-    this.selectedOverride.set(undefined);
-  }
-
-  clearSelected(): void {
-    this.selectedId.set(null);
-    this.selectedOverride.set(null);
-  }
-
-  reloadSelected(): void {
-    this.selectedOverride.set(undefined);
-    this.selectedResource.reload();
-  }
-
-  isMutationPending(id: number): boolean {
-    return !!this.pendingById()[id];
-  }
-
-  async createOptimistic(payload: ProductCreateRequest): Promise<Product> {
-    const snapshot = this.ensureMutableList();
-    const tempId = this.nextTempId();
-    const optimistic = createProductFromRequest(tempId, payload);
-
-    this.mutationStatusState.set('pending');
-    this.mutationErrorState.set(null);
-    this.setPending(tempId, true);
-    this.localItems.set([optimistic, ...snapshot]);
-
-    try {
-      const created = await firstValueFrom(this.api.createProduct(payload));
-      const committed = { ...optimistic, ...created };
-      const next = this.items().map((item) => (item.id === tempId ? committed : item));
-      this.localItems.set(next);
-      this.setPending(tempId, false);
-      if (committed.id !== tempId) {
-        this.setPending(committed.id, false);
-      }
-      this.mutationStatusState.set('idle');
-      return committed;
-    } catch (error) {
-      this.localItems.set(snapshot);
-      this.setPending(tempId, false);
-      this.mutationStatusState.set('error');
-      this.mutationErrorState.set(this.formatMutationError(error));
-      throw error;
-    }
-  }
-
-  async updateOptimistic(id: number, payload: ProductUpdateRequest): Promise<Product> {
-    const snapshot = this.ensureMutableList();
-    const current = snapshot.find((item) => item.id === id);
-    if (!current) {
-      throw new Error('Product not found in current list');
-    }
-
-    const optimistic = applyProductUpdate(current, payload);
-
-    this.mutationStatusState.set('pending');
-    this.mutationErrorState.set(null);
-    this.setPending(id, true);
-    this.localItems.set(snapshot.map((item) => (item.id === id ? optimistic : item)));
-    if (this.selected()?.id === id) {
-      this.selectedOverride.set(optimistic);
-    }
-
-    try {
-      const updated = await firstValueFrom(this.api.updateProduct(id, payload));
-      const committed = { ...optimistic, ...updated, id };
-      const next = this.items().map((item) => (item.id === id ? committed : item));
-      this.localItems.set(next);
-      if (this.selected()?.id === id) {
-        this.selectedOverride.set(committed);
-      }
-      this.setPending(id, false);
-      this.mutationStatusState.set('idle');
-      return committed;
-    } catch (error) {
-      this.localItems.set(snapshot);
-      if (this.selected()?.id === id) {
-        this.selectedOverride.set(current);
-      }
-      this.setPending(id, false);
-      this.mutationStatusState.set('error');
-      this.mutationErrorState.set(this.formatMutationError(error));
-      throw error;
-    }
-  }
-
-  async deleteOptimistic(id: number): Promise<void> {
-    const snapshot = this.ensureMutableList();
-    const exists = snapshot.some((item) => item.id === id);
-    if (!exists) {
-      return;
-    }
-
-    this.mutationStatusState.set('pending');
-    this.mutationErrorState.set(null);
-    this.setPending(id, true);
-    this.localItems.set(snapshot.filter((item) => item.id !== id));
-    if (this.selected()?.id === id) {
-      this.selectedOverride.set(null);
-    }
-
-    try {
-      await firstValueFrom(this.api.deleteProduct(id));
-      this.setPending(id, false);
-      this.mutationStatusState.set('idle');
-    } catch (error) {
-      this.localItems.set(snapshot);
-      this.setPending(id, false);
-      this.mutationStatusState.set('error');
-      this.mutationErrorState.set(this.formatMutationError(error));
-      throw error;
-    }
-  }
-
-  private ensureMutableList(): Product[] {
-    const current = this.items();
-    const snapshot = current.map((item) => ({ ...item, images: [...item.images] }));
-    this.localItems.set(snapshot);
-    return snapshot;
-  }
-
-  private setPending(id: number, pending: boolean): void {
-    this.pendingById.update((current) => {
-      if (!pending) {
-        const next = { ...current };
-        delete next[id];
-        return next;
-      }
-
-      return {
-        ...current,
-        [id]: true,
-      };
-    });
-  }
-
-  private nextTempId(): number {
-    const next = this.tempIdSeed();
-    this.tempIdSeed.set(next - 1);
-    return next;
-  }
-
-  private formatMutationError(error: unknown): string {
-    if (error instanceof Error) {
-      return `Demo mode rollback: ${error.message}`;
-    }
-
-    return 'Demo mode rollback: unable to persist product changes. Local state was reverted.';
-  }
-
-  private loadLocalProjection(): void {
-    if (typeof localStorage === 'undefined') {
-      return;
-    }
-
-    const raw = localStorage.getItem(PRODUCTS_LOCAL_STATE_KEY);
-    if (!raw) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as Product[];
-      if (Array.isArray(parsed)) {
-        this.localItems.set(
-          parsed
-            .slice(0, MAX_PERSISTED_PRODUCTS)
-            .map((item) => ({
-              ...item,
-              images: Array.isArray(item.images)
-                ? item.images.filter((image) => isSafeProductImageUrl(image))
-                : [],
-            }))
-        );
-      }
-    } catch {
-      localStorage.removeItem(PRODUCTS_LOCAL_STATE_KEY);
-    }
-  }
-
-  private persistLocalProjection(items: Product[] | null): void {
-    if (typeof localStorage === 'undefined') {
-      return;
-    }
-
-    if (!items || items.length === 0) {
-      localStorage.removeItem(PRODUCTS_LOCAL_STATE_KEY);
-      return;
-    }
-
-    try {
-      const serialized = JSON.stringify(
-        items.slice(0, MAX_PERSISTED_PRODUCTS).map((item) => ({
-          ...item,
-          images: item.images.filter((image) => isSafeProductImageUrl(image)),
-        }))
-      );
-
-      if (serialized.length > MAX_PRODUCTS_LOCAL_STATE_BYTES) {
-        localStorage.removeItem(PRODUCTS_LOCAL_STATE_KEY);
-        return;
-      }
-
-      localStorage.setItem(PRODUCTS_LOCAL_STATE_KEY, serialized);
-    } catch {
-      localStorage.removeItem(PRODUCTS_LOCAL_STATE_KEY);
-    }
-  }
+function omitKey<T>(record: Record<number, T>, key: number): Record<number, T> {
+  const { [key]: _, ...rest } = record;
+  void _;
+  return rest;
 }
 
 function areSameParams(
   current: ProductsListParams,
   next: ProductsListParams
 ): boolean {
-  return (current.limit ?? null) === (next.limit ?? null) &&
+  return (
+    (current.limit ?? null) === (next.limit ?? null) &&
     (current.offset ?? null) === (next.offset ?? null) &&
-    (current.categoryId ?? null) === (next.categoryId ?? null);
+    (current.categoryId ?? null) === (next.categoryId ?? null)
+  );
 }
+
+export const ProductsStore = signalStore(
+  { providedIn: 'root' },
+  withState<ProductsState>(initialState),
+  withComputed((store, config = inject(AppConfigService)) => ({
+    isLoading: computed(() => store.listStatus() === 'loading'),
+    error: computed(() => store.listError()),
+    isDemoMode: computed(() => config.authMode === 'mock'),
+    demoModeMessage: computed(() =>
+      config.authMode === 'mock'
+        ? 'Demo mode: CRUD calls use DummyJSON simulated mutations. Changes are optimistic and only persisted in local UI state.'
+        : ''
+    ),
+    hasPendingMutations: computed(
+      () => Object.keys(store.pendingMutations()).length > 0
+    ),
+    isMutationPending: computed(() => (id: number): boolean => !!store.pendingMutations()[id]),
+  })),
+  withMethods((store, api = inject(ProductsApiService), storage: ProductsStorage = inject(PRODUCTS_STORAGE)) => {
+    loadLocalProjection();
+
+    function loadLocalProjection(): void {
+      const raw = storage.getItem(PRODUCTS_LOCAL_STATE_KEY);
+      if (!raw) {
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw);
+
+        const result = z.array(z.object({
+          id: z.number().int().positive(),
+          title: z.string().min(1),
+          price: z.number(),
+          description: z.string().min(1),
+          images: z.array(z.string()),
+          category: CategoryCacheSchema,
+          categoryId: z.string().nullable().optional(),
+        })).safeParse(parsed);
+
+        if (result.success) {
+          const items = result.data
+            .slice(0, MAX_PERSISTED_PRODUCTS)
+            .map((item) => ({
+              ...item,
+              images: item.images.filter((image) => isSafeProductImageUrl(image)),
+              category: item.category
+                ? { id: item.category.id, name: item.category.name, image: item.category.image ?? null }
+                : null,
+              categoryId: item.categoryId ?? item.category?.id ?? null,
+            }));
+          patchState(store, { items, total: items.length });
+        } else {
+          storage.removeItem(PRODUCTS_LOCAL_STATE_KEY);
+        }
+      } catch {
+        storage.removeItem(PRODUCTS_LOCAL_STATE_KEY);
+      }
+    }
+
+    function persistLocalProjection(items: Product[]): void {
+      if (items.length === 0) {
+        storage.removeItem(PRODUCTS_LOCAL_STATE_KEY);
+        return;
+      }
+      try {
+        const serialized = JSON.stringify(
+          items.slice(0, MAX_PERSISTED_PRODUCTS).map((item) => ({
+            ...item,
+            images: item.images.filter((image) => isSafeProductImageUrl(image)),
+          }))
+        );
+        if (serialized.length > MAX_PRODUCTS_LOCAL_STATE_BYTES) {
+          storage.removeItem(PRODUCTS_LOCAL_STATE_KEY);
+          return;
+        }
+        storage.setItem(PRODUCTS_LOCAL_STATE_KEY, serialized);
+      } catch {
+        storage.removeItem(PRODUCTS_LOCAL_STATE_KEY);
+      }
+    }
+
+    function batchStateAndPersist(patch: Partial<ProductsState>): void {
+      const newItems = patch.items ?? store.items();
+      patchState(store, patch);
+      persistLocalProjection(newItems);
+    }
+
+    function nextId(): number {
+      const next = nextTempId(store.tempIdSeed());
+      patchState(store, { tempIdSeed: next });
+      return next;
+    }
+
+    return {
+      async loadList(params: ProductsListParams): Promise<void> {
+        patchState(store, {
+          listStatus: 'loading',
+          listError: null,
+          listParams: { ...params },
+        });
+
+        try {
+          const result: ProductsListResult = await firstValueFrom(api.getProducts(params));
+          batchStateAndPersist({
+            items: result.items,
+            total: result.total,
+            skip: result.skip,
+            limit: result.limit,
+            listStatus: 'resolved',
+            listError: null,
+          });
+        } catch (err: unknown) {
+          patchState(store, {
+            listStatus: 'error',
+            listError: err instanceof Error ? err.message : 'Failed to load products',
+          });
+        }
+      },
+
+      async ensureListLoaded(params: ProductsListParams): Promise<void> {
+        const currentParams = store.listParams();
+        if (
+          currentParams &&
+          areSameParams(currentParams, params) &&
+          store.listStatus() === 'resolved'
+        ) {
+          return;
+        }
+        await this.loadList(params);
+      },
+
+      async reloadList(): Promise<void> {
+        const params = store.listParams();
+        if (params) {
+          await this.loadList(params);
+        }
+      },
+
+      async loadOne(id: number): Promise<void> {
+        patchState(store, {
+          selectedId: id,
+          selected: null,
+          selectedStatus: 'loading',
+          selectedError: null,
+        });
+        try {
+          const product = await firstValueFrom(api.getProductById(id));
+          patchState(store, {
+            selected: product,
+            selectedStatus: 'resolved',
+            selectedError: null,
+          });
+        } catch (err: unknown) {
+          patchState(store, {
+            selectedStatus: 'error',
+            selectedError: err instanceof Error ? err.message : 'Failed to load product',
+          });
+        }
+      },
+
+      clearSelected(): void {
+        patchState(store, {
+          selectedId: null,
+          selected: null,
+          selectedStatus: 'idle',
+          selectedError: null,
+        });
+      },
+
+      async reloadSelected(): Promise<void> {
+        const id = store.selectedId();
+        if (id !== null) {
+          await this.loadOne(id);
+        }
+      },
+
+      resetMutationStatus(): void {
+        patchState(store, { mutationStatus: 'idle', mutationError: null });
+      },
+
+      async createOptimistic(payload: ProductCreateRequest): Promise<Product> {
+        const tempId = nextId();
+        const optimistic = createProductFromRequest(tempId, payload);
+
+        patchState(store, {
+          mutationStatus: 'pending',
+          mutationError: null,
+          pendingMutations: {
+            ...store.pendingMutations(),
+            [tempId]: { previousItem: null, mutationType: 'create' },
+          },
+        });
+        batchStateAndPersist({
+          items: [optimistic, ...store.items()],
+          total: store.total() + 1,
+        });
+
+        try {
+          const created = await firstValueFrom(api.createProduct(payload));
+          const committed = { ...optimistic, ...created };
+          const nextMutations = omitKey(store.pendingMutations(), tempId);
+          batchStateAndPersist({
+            items: store.items().map((item) => (item.id === tempId ? committed : item)),
+            pendingMutations: nextMutations,
+            mutationStatus: 'idle',
+            mutationError: null,
+          });
+          return committed;
+        } catch (error) {
+          const nextMutations = omitKey(store.pendingMutations(), tempId);
+          batchStateAndPersist({
+            items: store.items().filter((item) => item.id !== tempId),
+            total: Math.max(0, store.total() - 1),
+            pendingMutations: nextMutations,
+            mutationStatus: 'error',
+            mutationError: formatMutationError(error),
+          });
+          throw error;
+        }
+      },
+
+      async updateOptimistic(id: number, payload: ProductUpdateRequest): Promise<Product> {
+        const current = store.items().find((item) => item.id === id);
+        if (!current) {
+          throw new Error('Product not found in current list');
+        }
+
+        const optimistic = applyProductUpdate(current, payload);
+
+        patchState(store, {
+          mutationStatus: 'pending',
+          mutationError: null,
+          pendingMutations: {
+            ...store.pendingMutations(),
+            [id]: { previousItem: current, mutationType: 'update' },
+          },
+        });
+        batchStateAndPersist({
+          items: store.items().map((item) => (item.id === id ? optimistic : item)),
+          selected: store.selected()?.id === id ? optimistic : store.selected(),
+        });
+
+        try {
+          const updated = await firstValueFrom(api.updateProduct(id, payload));
+          const committed = { ...optimistic, ...updated, id };
+          const nextMutations = omitKey(store.pendingMutations(), id);
+          batchStateAndPersist({
+            items: store.items().map((item) => (item.id === id ? committed : item)),
+            selected: store.selected()?.id === id ? committed : store.selected(),
+            pendingMutations: nextMutations,
+            mutationStatus: 'idle',
+            mutationError: null,
+          });
+          return committed;
+        } catch (error) {
+          const nextMutations = omitKey(store.pendingMutations(), id);
+          batchStateAndPersist({
+            items: store.items().map((item) => (item.id === id ? current : item)),
+            selected: store.selected()?.id === id ? current : store.selected(),
+            pendingMutations: nextMutations,
+            mutationStatus: 'error',
+            mutationError: formatMutationError(error),
+          });
+          throw error;
+        }
+      },
+
+      async deleteOptimistic(id: number): Promise<void> {
+        const current = store.items().find((item) => item.id === id);
+        if (!current) {
+          return;
+        }
+
+        patchState(store, {
+          mutationStatus: 'pending',
+          mutationError: null,
+          pendingMutations: {
+            ...store.pendingMutations(),
+            [id]: { previousItem: current, mutationType: 'delete' },
+          },
+        });
+        batchStateAndPersist({
+          items: store.items().filter((item) => item.id !== id),
+          total: Math.max(0, store.total() - 1),
+          selected: store.selected()?.id === id ? null : store.selected(),
+        });
+
+        try {
+          await firstValueFrom(api.deleteProduct(id));
+          const nextMutations = omitKey(store.pendingMutations(), id);
+          patchState(store, {
+            pendingMutations: nextMutations,
+            mutationStatus: 'idle',
+            mutationError: null,
+          });
+        } catch (error) {
+          const nextMutations = omitKey(store.pendingMutations(), id);
+          batchStateAndPersist({
+            items: store.items().filter((item) => item.id !== id).concat(current).sort((a, b) => a.id - b.id),
+            total: store.total() + 1,
+            selected: store.selected()?.id === id ? current : store.selected(),
+            pendingMutations: nextMutations,
+            mutationStatus: 'error',
+            mutationError: formatMutationError(error),
+          });
+          throw error;
+        }
+      },
+    };
+  })
+);

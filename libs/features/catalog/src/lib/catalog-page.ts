@@ -40,14 +40,12 @@ export class CatalogPageComponent {
 
   readonly categoriesError = computed(() => this.categoriesStore.error());
   readonly isCategoriesLoading = computed(
-    () => this.categoriesStore.status() === 'loading' || this.categoriesStore.status() === 'reloading'
+    () => this.categoriesStore.status() === 'loading'
   );
 
   readonly productsError = computed(() => this.productsStore.listError());
   readonly isProductsLoading = computed(
-    () =>
-      this.productsStore.listStatus() === 'loading' ||
-      this.productsStore.listStatus() === 'reloading'
+    () => this.productsStore.listStatus() === 'loading'
   );
 
   readonly filteredProducts = computed(() => {
@@ -74,7 +72,7 @@ export class CatalogPageComponent {
   );
 
   constructor() {
-    this.categoriesStore.loadList();
+    this.categoriesStore.ensureLoaded();
     effect(() => {
       const page = this.page();
       const limit = this.pageSize();
@@ -89,7 +87,7 @@ export class CatalogPageComponent {
     effect(() => {
       const products = this.productsStore.items();
       const listStatus = this.productsStore.listStatus();
-      const isLoading = listStatus === 'loading' || listStatus === 'reloading';
+      const isLoading = listStatus === 'loading';
 
       if (!isLoading && products.length > 0) {
         this.inventoryStore.seedMissingProducts(products, 5);
@@ -134,7 +132,7 @@ export class CatalogPageComponent {
   }
 
   onRetryCategories(): void {
-    this.categoriesStore.loadList();
+    this.categoriesStore.ensureLoaded(true);
   }
 
   addProductToCart(productId: number): void {

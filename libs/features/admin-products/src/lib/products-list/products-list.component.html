@@ -30,23 +30,13 @@
   }
 
   <div class="tg-grid tg-gap-3 tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-4 md:tg-grid-cols-[1fr_auto]">
-    <div class="tg-grid tg-gap-1">
-      <label class="tg-text-sm tg-font-medium tg-text-slate-700" for="categoryFilter">Category</label>
-      <select
-        id="categoryFilter"
-        [ngModel]="selectedCategory() ?? ''"
-        (ngModelChange)="onCategoryChange($event)"
-        class="tg-w-full tg-max-w-md tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm focus:tg-border-slate-500 focus:tg-outline-none"
-      >
-        <option value="">All</option>
-        @for (category of categories(); track category.id) {
-        <option [value]="category.id">{{ category.name }}</option>
-        }
-      </select>
-    </div>
-
+    <lib-category-filter
+      [categories]="categoryOptions()"
+      [selectedCategoryId]="selectedCategory()"
+      (selectedCategoryIdChange)="onCategoryChange($event)"
+    />
     <div class="tg-flex tg-items-end tg-justify-end tg-text-sm tg-text-slate-500">
-      {{ filteredProducts().length }} products
+      {{ productsStore.total() }} products
     </div>
   </div>
 
@@ -62,14 +52,14 @@
   <div class="tg-rounded-2xl tg-border tg-border-amber-200 tg-bg-amber-50 tg-p-4 tg-text-amber-800">
     <p>{{ mutationError() }}</p>
   </div>
-  } @else if (filteredProducts().length === 0) {
+  } @else if (productsStore.items().length === 0) {
   <div class="tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-10 tg-text-center">
     <p class="tg-text-slate-500">No products found for the selected category.</p>
   </div>
   } @else {
   <div class="tg-overflow-hidden tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white">
     <div class="tg-grid tg-grid-cols-1 tg-gap-4 tg-p-4 md:tg-grid-cols-2 xl:tg-grid-cols-3">
-      @for (product of paginatedProducts(); track product.id) {
+      @for (product of productsStore.items(); track product.id) {
       <article
         class="tg-flex tg-flex-col tg-overflow-hidden tg-rounded-xl tg-border tg-border-slate-200 tg-bg-slate-50"
       >
@@ -118,26 +108,12 @@
     </div>
   </div>
 
-  <div class="tg-flex tg-items-center tg-justify-between tg-rounded-2xl tg-border tg-border-slate-200 tg-bg-white tg-p-4">
-    <button
-      type="button"
-      (click)="onPrevPage()"
-      [disabled]="!canGoPrev()"
-      class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 hover:tg-bg-slate-100 disabled:tg-cursor-not-allowed disabled:tg-opacity-50"
-    >
-      Previous
-    </button>
-
-    <span class="tg-text-sm tg-font-medium tg-text-slate-600">Page {{ page() }} of {{ totalPages() }}</span>
-
-    <button
-      type="button"
-      (click)="onNextPage()"
-      [disabled]="!canGoNext()"
-      class="tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 hover:tg-bg-slate-100 disabled:tg-cursor-not-allowed disabled:tg-opacity-50"
-    >
-      Next
-    </button>
-  </div>
+  <lib-pagination
+    [page]="page()"
+    [disablePrev]="!canGoPrev()"
+    [disableNext]="!canGoNext()"
+    (previous)="onPrevPage()"
+    (next)="onNextPage()"
+  />
   }
 </section>

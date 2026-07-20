@@ -2,10 +2,9 @@ import { TestBed } from '@angular/core/testing';
 import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductsApiService } from '../api/products.api';
+import { PRODUCTS_STORAGE, ProductsStorage } from '../storage/products.storage';
 import { Product, ProductCreateRequest, ProductUpdateRequest } from '../models/products.models';
 import { ProductsStore } from './products.store';
-
-const LOCAL_STATE_KEY = 'techgear_products_local_state_v1';
 
 function makeProduct(id: number, title = `Product ${id}`): Product {
   return {
@@ -19,8 +18,18 @@ function makeProduct(id: number, title = `Product ${id}`): Product {
   };
 }
 
+function createMemoryStorage(): ProductsStorage {
+  const map = new Map<string, string>();
+  return {
+    getItem: (key: string) => map.get(key) ?? null,
+    setItem: (key: string, value: string) => { map.set(key, value); },
+    removeItem: (key: string) => { map.delete(key); },
+  };
+}
+
 describe('ProductsStore optimistic mutations', () => {
   let store: ProductsStore;
+  let storageMock: ProductsStorage;
   let apiMock: {
     getProducts: ReturnType<typeof vi.fn>;
     getProductById: ReturnType<typeof vi.fn>;
@@ -30,7 +39,7 @@ describe('ProductsStore optimistic mutations', () => {
   };
 
   beforeEach(() => {
-    localStorage.removeItem(LOCAL_STATE_KEY);
+    storageMock = createMemoryStorage();
 
     apiMock = {
       getProducts: vi.fn(() => of([])),
@@ -44,12 +53,13 @@ describe('ProductsStore optimistic mutations', () => {
       providers: [
         ProductsStore,
         { provide: ProductsApiService, useValue: apiMock },
+        { provide: PRODUCTS_STORAGE, useValue: storageMock },
       ],
     });
   });
 
   function initStoreWith(items: Product[]): ProductsStore {
-    localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify(items));
+    storageMock.setItem('techgear_products_local_state_v1', JSON.stringify(items));
     return TestBed.inject(ProductsStore);
   }
 

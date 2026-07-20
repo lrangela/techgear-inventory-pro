@@ -14,6 +14,11 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
     "paths": {
       "@techgear/ui": ["libs/shared/ui/src/index.ts"],
       "@techgear/util": ["libs/shared/util/src/index.ts"],
@@ -30,6 +35,12 @@
       "@techgear/features-admin-inventory": ["libs/features/admin-inventory/src/index.ts"],
       "@techgear/features-admin-products": ["libs/features/admin-products/src/index.ts"]
     }
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
   },
   "exclude": ["node_modules", "tmp", "dist", ".angular"]
 }

@@ -13,7 +13,7 @@ import { CategoriesStore } from '@techgear/data-access/categories';
 import { isSafeProductImageUrl, ProductsStore } from '@techgear/data-access/products';
 import { Product, ProductCreateRequest } from '@techgear/data-access/products';
 import { ConfirmDialogService } from '@techgear/ui';
-import { PendingChangesComponent } from '@techgear/util';
+import { AppErrorModel, PendingChangesComponent } from '@techgear/util';
 
 @Component({
   selector: 'lib-product-edit',
@@ -40,13 +40,11 @@ export class ProductEditComponent implements OnInit, PendingChangesComponent {
   readonly demoModeMessage = this.productsStore.demoModeMessage;
   readonly isSubmitting = computed(() => this.mutationStatus() === 'pending');
   readonly isDetailLoading = computed(
-    () =>
-      !this.isNew &&
-      (this.selectedStatus() === 'loading' || this.selectedStatus() === 'reloading')
+    () => !this.isNew() && this.selectedStatus() === 'loading'
   );
 
-  isNew = false;
-  private currentProductId: number | null = null;
+  readonly isNew = signal(false);
+  readonly currentProductId = signal<number | null>(null);
 
   form = this.fb.group({
     title: ['', Validators.required],
@@ -61,23 +59,24 @@ export class ProductEditComponent implements OnInit, PendingChangesComponent {
 
   ngOnInit(): void {
     this.productsStore.ensureListLoaded({ limit: 100, offset: 0 });
-    this.categoriesStore.loadList();
+    this.categoriesStore.ensureLoaded();
 
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
-      this.isNew = false;
-      this.currentProductId = Number(id);
-      this.productsStore.loadOne(this.currentProductId);
+      this.isNew.set(false);
+      this.currentProductId.set(Number(id));
+      this.productsStore.loadOne(Number(id));
       return;
     }
 
-    this.isNew = true;
+    this.isNew.set(true);
   }
 
   constructor() {
     effect(() => {
       const product = this.productsStore.selected();
-      if (!product || this.isNew || this.currentProductId !== product.id) {
+      const currentId = this.currentProductId();
+      if (!product || this.isNew() || currentId !== product.id) {
         return;
       }
 
@@ -86,18 +85,11 @@ export class ProductEditComponent implements OnInit, PendingChangesComponent {
   }
 
   private loadProduct(product: Product): void {
-    if (!product) {
-      return;
-    }
-
     this.form.patchValue({
       title: product.title,
       price: product.price,
       description: product.description,
-      categoryId:
-        typeof product.category === 'string'
-          ? product.category
-          : product.category?.id ?? product.categoryId ?? '',
+      categoryId: product.category?.id ?? product.categoryId ?? '',
       images: product.images[0],
     });
     this.form.markAsPristine();
@@ -115,16 +107,19 @@ export class ProductEditComponent implements OnInit, PendingChangesComponent {
     }
 
     try {
-      if (this.isNew) {
+      if (this.isNew()) {
         await this.productsStore.createOptimistic(payload);
-      } else if (this.currentProductId) {
-        await this.productsStore.updateOptimistic(this.currentProductId, payload);
+      } else {
+        const id = this.currentProductId();
+        if (id) {
+          await this.productsStore.updateOptimistic(id, payload);
+        }
       }
       this.form.markAsPristine();
       void this.router.navigate(['/products']);
-    } catch (error: any) {
-      if (error?.status === 400 || error?.status === 422) {
-        const validationErrors = error?.error?.errors;
+    } catch (error: unknown) {
+      if (error instanceof AppErrorModel && (error.status === 400 || error.status === 422)) {
+        const validationErrors = (error.details as { errors?: Record<string, string> })?.errors;
         if (validationErrors && typeof validationErrors === 'object') {
           Object.keys(validationErrors).forEach((key) => {
             const control = this.form.get(key);
@@ -139,11 +134,12 @@ export class ProductEditComponent implements OnInit, PendingChangesComponent {
   }
 
   async onDelete(): Promise<void> {
-    if (this.isNew || !this.currentProductId || this.isSubmitting()) {
+    const id = this.currentProductId();
+    if (this.isNew() || !id || this.isSubmitting()) {
       return;
     }
 
-    const productName = this.form.getRawValue().title?.trim() || `#${this.currentProductId}`;
+    const productName = this.form.getRawValue().title?.trim() || `#${id}`;
     const confirmed = await this.confirmDialog.open({
       title: 'Delete product',
       message: `Are you sure you want to delete "${productName}"?`,
@@ -157,7 +153,7 @@ export class ProductEditComponent implements OnInit, PendingChangesComponent {
     }
 
     try {
-      await this.productsStore.deleteOptimistic(this.currentProductId);
+      await this.productsStore.deleteOptimistic(id);
       void this.router.navigate(['/products']);
     } catch {
       return;
