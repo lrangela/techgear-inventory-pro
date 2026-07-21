@@ -48,9 +48,16 @@ test.describe('shop-web', () => {
       page.getByRole('heading', { name: 'Shopping Cart' })
     ).toBeVisible();
     await expect(page.getByText('Wireless Headphones')).toBeVisible();
+    const checkoutBtn = page.getByRole('button', { name: 'Completar Compra (Simulación)' });
+    await expect(checkoutBtn).toBeEnabled();
+    await checkoutBtn.click();
+
     await expect(
-      page.getByRole('button', { name: 'Demo only: checkout not implemented' })
-    ).toBeDisabled();
+      page.getByRole('heading', { name: '¡Compra simulada con éxito!' })
+    ).toBeVisible();
+
+    await page.getByRole('button', { name: 'Seguir comprando' }).click();
+    await expect(page).toHaveURL(/\/catalog$/);
   });
 
   test('@remote-auth loads API sample credentials and signs in with remote auth', async ({
