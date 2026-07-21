@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { AuthStore } from '@techgear/data-access/auth';
 
 @Component({
   selector: 'app-forbidden-page',
-  imports: [RouterLink],
+  imports: [],
   template: `
     <section
       class="tg-mx-auto tg-flex tg-min-h-[60vh] tg-max-w-3xl tg-flex-col tg-items-start tg-justify-center tg-gap-6"
@@ -31,7 +31,7 @@ import { AuthStore } from '@techgear/data-access/auth';
 
       <div class="tg-flex tg-flex-wrap tg-gap-3">
         <a
-          routerLink="/products"
+          [href]="getStorefrontUrl()"
           class="tg-inline-flex tg-items-center tg-rounded-md tg-bg-slate-900 tg-px-4 tg-py-2 tg-text-sm tg-font-medium tg-text-white hover:tg-bg-slate-700"
         >
           Back to products
@@ -51,6 +51,15 @@ import { AuthStore } from '@techgear/data-access/auth';
 export class ForbiddenPageComponent {
   readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
+
+  getStorefrontUrl(): string {
+    const host = window.location.host;
+    const protocol = window.location.protocol;
+    if (host.includes('localhost:') || host.includes('127.0.0.1:')) {
+      return `${protocol}//${window.location.hostname}:4200/catalog`;
+    }
+    return '../catalog';
+  }
 
   async logout(): Promise<void> {
     this.authStore.logout();

@@ -94,14 +94,14 @@
         class="tg-mt-6 tg-w-full tg-rounded-lg tg-bg-indigo-600 tg-py-3 tg-text-sm tg-font-semibold tg-text-white tg-transition-colors hover:tg-bg-indigo-700 disabled:tg-opacity-50 disabled:tg-cursor-not-allowed"
       >
         @if (isCheckingOut()) {
-          Simulando pago...
+          Simulating payment...
         } @else {
-          Completar Compra (Simulación)
+          Complete Purchase (Simulation)
         }
       </button>
 
       <p class="tg-mt-2 tg-text-xs tg-text-slate-500">
-        Simulación de pago: el stock se descontará permanentemente del inventario.
+        Payment simulation: stock will be permanently deducted from the inventory.
       </p>
 
       <button
@@ -125,27 +125,21 @@
         </svg>
       </div>
 
-      <h2 class="tg-text-2xl tg-font-bold tg-text-slate-900">¡Compra simulada con éxito!</h2>
+      <h2 class="tg-text-2xl tg-font-bold tg-text-slate-900">Purchase simulated successfully!</h2>
 
       <p class="tg-mt-3 tg-text-sm tg-leading-relaxed tg-text-slate-500">
-        El stock de los productos ha sido descontado de forma permanente del inventario.
-        Puedes verificar los cambios en el Panel de Administración.
+        The stock of the products has been permanently deducted from the inventory.
+        You can verify the updates in the Admin Panel if you have authorized credentials.
       </p>
 
-      <div class="tg-mt-8 tg-flex tg-flex-col tg-gap-3 sm:tg-flex-row sm:tg-justify-center">
+      <div class="tg-mt-8 tg-flex tg-justify-center">
         <button
           type="button"
           (click)="onContinueShopping()"
           class="tg-inline-flex tg-items-center tg-justify-center tg-rounded-lg tg-bg-indigo-600 tg-px-6 tg-py-3 tg-text-sm tg-font-semibold tg-text-white tg-transition-colors hover:tg-bg-indigo-700"
         >
-          Seguir comprando
+          Continue shopping
         </button>
-        <a
-          href="./admin/"
-          class="tg-inline-flex tg-items-center tg-justify-center tg-rounded-lg tg-border tg-border-slate-300 tg-bg-white tg-px-6 tg-py-3 tg-text-sm tg-font-semibold tg-text-slate-700 tg-transition-colors hover:tg-bg-slate-100"
-        >
-          Ver Inventario Admin
-        </a>
       </div>
     </div>
   </div>

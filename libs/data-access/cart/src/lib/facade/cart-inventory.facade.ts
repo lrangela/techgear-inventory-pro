@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, delay, switchMap, tap, map, catchError } from 'rxjs';
+import { Observable, of, from, delay, switchMap, tap, map, catchError } from 'rxjs';
 import { InventoryStore } from '@techgear/data-access-inventory';
 import type { CartItem } from '../models/cart.models';
 import { CartStore } from '../state/cart.store';
@@ -26,7 +26,9 @@ export class CartInventoryFacade {
   private readonly http = inject(HttpClient);
 
   getStock(productId: number): number {
-    return this.inventoryStore.getStock(productId);
+    const inventoryStock = this.inventoryStore.getStock(productId);
+    const currentQtyInCart = this.cartStore.items().find((i) => i.productId === productId)?.quantity ?? 0;
+    return Math.max(0, inventoryStock - currentQtyInCart);
   }
 
   addToCart(product: Omit<CartItem, 'quantity'>): boolean {
@@ -126,11 +128,13 @@ export class CartInventoryFacade {
     return of(true).pipe(
       delay(1500),
       switchMap(() =>
-        this.http.post<{ success: boolean }>('/api/checkout', items),
+        this.http.post<{ success: boolean }>('/api/checkout', items).pipe(
+          switchMap(() => from(this.inventoryStore.loadFromStorage())),
+          tap(() => this.cartStore.clear()),
+          map(() => true)
+        )
       ),
-      tap(() => this.cartStore.clear()),
-      map(() => true),
-      catchError(() => of(false)),
+      catchError(() => of(false))
     );
   }
 }

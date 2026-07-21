@@ -55,7 +55,7 @@ export class CatalogPageComponent {
   readonly productsWithStock = computed(() => {
     return this.filteredProducts().map((product) => ({
       ...product,
-      stock: this.inventoryStore.getStock(product.id)
+      stock: this.cartFacade.getStock(product.id)
     }));
   });
 

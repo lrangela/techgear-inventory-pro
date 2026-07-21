@@ -48,15 +48,15 @@ test.describe('shop-web', () => {
       page.getByRole('heading', { name: 'Shopping Cart' })
     ).toBeVisible();
     await expect(page.getByText('Wireless Headphones')).toBeVisible();
-    const checkoutBtn = page.getByRole('button', { name: 'Completar Compra (Simulación)' });
+    const checkoutBtn = page.getByRole('button', { name: 'Complete Purchase (Simulation)' });
     await expect(checkoutBtn).toBeEnabled();
     await checkoutBtn.click();
 
     await expect(
-      page.getByRole('heading', { name: '¡Compra simulada con éxito!' })
+      page.getByRole('heading', { name: 'Purchase simulated successfully!' })
     ).toBeVisible();
 
-    await page.getByRole('button', { name: 'Seguir comprando' }).click();
+    await page.getByRole('button', { name: 'Continue shopping' }).click();
     await expect(page).toHaveURL(/\/catalog$/);
   });
 

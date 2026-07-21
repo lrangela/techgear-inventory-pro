@@ -68,6 +68,7 @@ describe('CatalogPageComponent', () => {
           provide: CartInventoryFacade,
           useValue: {
             addToCart,
+            getStock,
           },
         },
         {
