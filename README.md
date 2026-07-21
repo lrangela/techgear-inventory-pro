@@ -6,8 +6,10 @@
 
 ## Live Demo & Preview
 
-Puedes ver la aplicación en funcionamiento en el siguiente enlace:
-👉 **[TechGear Inventory Pro - Demo en Vivo](https://lrangela.github.io/techgear-inventory-pro/login?returnUrl=%2Fcatalog)**
+Puedes ver la aplicación en funcionamiento en los siguientes enlaces:
+
+- **[Catálogo Público (Demo en Vivo)](https://lrangela.github.io/techgear-inventory-pro/login?returnUrl=%2Fcatalog)** — Tienda de demostración con autenticación simulada.
+- **[Panel de Administración (Admin)](https://lrangela.github.io/techgear-inventory-pro/admin/)** — Gestión de inventario, productos y stock en tiempo real.
 
 ---
 

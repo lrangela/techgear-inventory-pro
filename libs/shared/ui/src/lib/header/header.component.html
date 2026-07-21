@@ -63,11 +63,7 @@
                 }
             </div>
 
-            <button type="button"
-                class="tg-inline-flex tg-items-center tg-rounded-md tg-border tg-border-slate-300 tg-bg-white tg-px-3 tg-py-2 tg-text-sm tg-font-medium tg-text-slate-700 hover:tg-bg-slate-100"
-                (click)="logout.emit()">
-                Logout
-            </button>
+            <lib-logout-button (click)="logout.emit()" />
             }
         </div>
     </div>

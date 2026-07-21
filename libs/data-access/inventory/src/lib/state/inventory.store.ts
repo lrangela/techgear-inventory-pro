@@ -1,7 +1,8 @@
 import { inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { createId } from '@techgear/util';
-import { InventoryStorageService } from '../storage/inventory.storage';
 import type { InventoryItem, StockMovement } from '../models/inventory.models';
 
 interface InventoryState {
@@ -26,7 +27,7 @@ const initialState: InventoryState = {
 export const InventoryStore = signalStore(
     { providedIn: 'root' },
     withState<InventoryState>(initialState),
-    withMethods((store, storage = inject(InventoryStorageService)) => ({
+    withMethods((store, http = inject(HttpClient)) => ({
         adjustStock(productId: number, productName: string, delta: number, reason?: string) {
             const existing = store.items().find((i: InventoryItem) => i.productId === productId);
             const newStock = Math.max(0, (existing?.stock ?? 0) + delta);
@@ -47,13 +48,13 @@ export const InventoryStore = signalStore(
             const newMovements = [...store.movements(), movement].slice(-MAX_STORED_MOVEMENTS);
 
             patchState(store, { items: newItems, movements: newMovements });
-            storage.save({ items: newItems, movements: newMovements });
+            http.post('/api/inventory/adjust', { items: newItems, movements: newMovements }).subscribe();
         },
-        adjustStockBatch(movements: StockBatchMovement[]) {
+        adjustStockBatch(batchMovements: StockBatchMovement[]) {
             const itemsMap = new Map(store.items().map((i: InventoryItem) => [i.productId, i]));
             const newMovementsList: StockMovement[] = [];
 
-            for (const m of movements) {
+            for (const m of batchMovements) {
                 const existing = itemsMap.get(m.productId);
                 const newStock = Math.max(0, (existing?.stock ?? 0) + m.delta);
                 const updatedItem: InventoryItem = existing
@@ -75,7 +76,7 @@ export const InventoryStore = signalStore(
             const newMovements = [...store.movements(), ...newMovementsList].slice(-MAX_STORED_MOVEMENTS);
 
             patchState(store, { items: newItems, movements: newMovements });
-            storage.save({ items: newItems, movements: newMovements });
+            http.post('/api/inventory/adjust', { items: newItems, movements: newMovements }).subscribe();
         },
         getStock(productId: number): number {
             return store.items().find((i: InventoryItem) => i.productId === productId)?.stock ?? 0;
@@ -98,7 +99,7 @@ export const InventoryStore = signalStore(
             const newItems = [...store.items(), ...seededItems];
 
             patchState(store, { items: newItems });
-            storage.save({ items: newItems, movements: store.movements() });
+            http.post('/api/inventory/adjust', { items: newItems, movements: store.movements() }).subscribe();
         },
         syncWithCatalog(products: { id: number; title: string }[], defaultStock = 5) {
             const currentItems = store.items();
@@ -130,11 +131,14 @@ export const InventoryStore = signalStore(
             }
 
             patchState(store, { items: nextItems });
-            storage.save({ items: nextItems, movements: store.movements() });
+            http.post('/api/inventory/adjust', { items: nextItems, movements: store.movements() }).subscribe();
         },
         loadFromStorage() {
-            const data = storage.load();
-            patchState(store, data);
+            return firstValueFrom(
+                http.get<{ items: InventoryItem[]; movements: StockMovement[] }>('/api/inventory')
+            ).then((data) => {
+                patchState(store, data);
+            });
         },
     }))
 );

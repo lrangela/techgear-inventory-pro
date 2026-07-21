@@ -18,7 +18,7 @@ import {
 } from '@techgear/data-access/auth';
 import { PRODUCTS_API_BASE_URL, provideProductsStorage } from '@techgear/data-access/products';
 import { CATEGORIES_API_BASE_URL } from '@techgear/data-access/categories';
-import { InventoryStore } from '@techgear/data-access/inventory';
+import { InventoryStore, mockApiInterceptor } from '@techgear/data-access/inventory';
 import { CartStore } from '@techgear/data-access-cart';
 import { httpErrorInterceptor, AppConfigService } from '@techgear/util';
 
@@ -26,7 +26,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideHttpClient(withInterceptors([httpErrorInterceptor, authInterceptor])),
+    provideHttpClient(withInterceptors([mockApiInterceptor, httpErrorInterceptor, authInterceptor])),
     provideTokenStorage(),
     provideProductsStorage(),
     {

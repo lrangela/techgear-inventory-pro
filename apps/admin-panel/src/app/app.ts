@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthStore } from '@techgear/data-access/auth';
-import { ConfirmDialogHostComponent, ErrorBannerComponent } from '@techgear/ui';
+import { ConfirmDialogHostComponent, ErrorBannerComponent, LogoutButtonComponent } from '@techgear/ui';
 
 @Component({
   imports: [
@@ -10,6 +10,7 @@ import { ConfirmDialogHostComponent, ErrorBannerComponent } from '@techgear/ui';
     RouterLinkActive,
     ErrorBannerComponent,
     ConfirmDialogHostComponent,
+    LogoutButtonComponent,
   ],
   selector: 'app-root',
   templateUrl: './app.html',

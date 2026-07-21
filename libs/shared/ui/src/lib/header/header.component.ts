@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { LogoutButtonComponent } from '../buttons/logout-button/logout-button.component';
 
 @Component({
     selector: 'lib-header',
     standalone: true,
-    imports: [RouterLink, RouterLinkActive],
+    imports: [RouterLink, RouterLinkActive, LogoutButtonComponent],
     templateUrl: './header.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
